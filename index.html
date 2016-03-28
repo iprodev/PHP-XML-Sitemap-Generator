@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>PHP XML Sitemap Generator by iprodev</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>PHP XML Sitemap Generator</h1>
+        <h2>PHP Script that generates a sitemap by crawling a given URL.</h2>
+        <a href="https://github.com/iprodev/PHP-XML-Sitemap-Generator" class="button"><small>View project on</small> GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
+<a id="php-xml-sitemap-generator" class="anchor" href="#php-xml-sitemap-generator" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>PHP XML Sitemap Generator</h1>
+
+<p>This is a simple and small PHP script that I wrote quickly for myself to create a XML sitemap of my page for Google and other search engines. Maybe others can use the script too.</p>
+
+<p>Sitemap format: <a href="http://www.sitemaps.org/protocol.html">http://www.sitemaps.org/protocol.html</a></p>
+
+<h2>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Features</h2>
+
+<ul>
+<li>Actually crawls webpages like Google would</li>
+<li>Generates seperate XML file which gets updated every time the script gets executed (Runnable via CRON)</li>
+<li>Awesome for SEO</li>
+<li>Crawls faster than online services</li>
+<li>Adaptable</li>
+</ul>
+
+<h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Usage is pretty strait forward:</p>
+
+<ul>
+<li>Configure the crawler by modifying the <code>sitemap-generator.php</code> file
+
+<ul>
+<li>Select URL to crawl</li>
+<li>Select the file to which the sitemap will be saved</li>
+<li>Select accepted extensions ("/" is manditory for proper functionality)</li>
+<li>Select change frequency (always, daily, weekly, monthly, never, etc...)</li>
+<li>Choose priority (It is all relative so it may as well be 1)</li>
+</ul>
+</li>
+<li>Generate sitemap
+
+<ul>
+<li>Either send a GET request to this script or simply point your browser</li>
+<li>A sitemap will be generated and displayed</li>
+<li>Submit sitemap.xml to Google</li>
+<li>Setup a CRON Job to send web requests to this script every so often, this will keep the sitemap.xml file up to date</li>
+</ul>
+</li>
+</ul>
+
+<p>The script can be started as CLI script or as Website. CLI is the prefered way to start this script.</p>
+
+<p>CLI scripts are started from the command line, can be used with CRON and so on. You start it with the php program.</p>
+
+<p>CLI command to create the XML file: <code>php sitemap-generator.php</code></p>
+
+<p>To start the program with your Webserver as Website change in the script the line 22 from</p>
+
+<div class="highlight highlight-text-html-php"><pre><span class="pl-s1">   <span class="pl-c1">define</span> (<span class="pl-s"><span class="pl-pds">'</span>CLI<span class="pl-pds">'</span></span>, <span class="pl-c1">true</span>);</span></pre></div>
+
+<p>to </p>
+
+<div class="highlight highlight-text-html-php"><pre><span class="pl-s1">   <span class="pl-c1">define</span> (<span class="pl-s"><span class="pl-pds">'</span>CLI<span class="pl-pds">'</span></span>, <span class="pl-c1">false</span>);</span></pre></div>
+
+<h2>
+<a id="sitemapxml" class="anchor" href="#sitemapxml" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>sitemap.xml</h2>
+
+<p>Add the XML file to your <code>/robots.txt</code>.</p>
+
+<p>Example line for the robots.txt:</p>
+
+<pre><code>Sitemap: http://www.iprodev.com/sitemap.xml
+</code></pre>
+
+<h2>
+<a id="credits" class="anchor" href="#credits" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Credits</h2>
+
+<p>PHP XML Sitemap Generator was created by <a href="http://iprodev.com">Hemn Chawroka</a> from <a href="http://iprodev.com">iProDev</a>. Released under the MIT license.</p>
+
+<p>Included scripts:</p>
+
+<ul>
+<li>
+<a href="http://simplehtmldom.sourceforge.net/">PHP Simple HTML DOM Parser</a> - A HTML DOM parser written in PHP5+ let you manipulate HTML in a very easy way!.</li>
+</ul>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/iprodev/PHP-XML-Sitemap-Generator/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/iprodev/PHP-XML-Sitemap-Generator/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/iprodev/PHP-XML-Sitemap-Generator"></a> is maintained by <a href="https://github.com/iprodev">iprodev</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
