@@ -47,7 +47,7 @@ Add the XML file to your `/robots.txt`.
 Example line for the robots.txt:
 
 ```
-Sitemap: https://www.plop.at/sitemap.xml
+Sitemap: http://www.iprodev.com/sitemap.xml
 ```
 
 
