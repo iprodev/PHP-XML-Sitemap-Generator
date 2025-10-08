@@ -1,0 +1,41 @@
+#!/usr/bin/env php
+<?php
+require __DIR__ . '/../vendor/autoload.php';
+
+use IProDev\Sitemap\Fetcher;
+use IProDev\Sitemap\Crawler;
+use IProDev\Sitemap\SitemapWriter;
+use IProDev\Sitemap\RobotsTxt;
+
+$options = getopt("", [
+    "url:",
+    "out::",
+    "concurrency::",
+    "max-pages::",
+    "max-depth::",
+    "public-base::"
+]);
+
+$url         = $options['url'] ?? null;
+$out         = $options['out'] ?? (__DIR__ . '/../output');
+$concurrency = intval($options['concurrency'] ?? 10);
+$maxPages    = intval($options['max-pages'] ?? 50000);
+$maxDepth    = intval($options['max-depth'] ?? 5);
+$publicBase  = $options['public-base'] ?? null;
+
+if (!$url) {
+    echo "Usage:\n";
+    echo "  sitemap --url=https://www.example.com [--out=./output] [--concurrency=10] [--max-pages=50000] [--max-depth=5] [--public-base=https://www.example.com]\n\n";
+    echo "Example:\n";
+    echo "  sitemap --url=https://www.iprodev.com --out=./sitemaps --concurrency=20 --max-pages=10000 --public-base=https://www.iprodev.com\n";
+    exit(1);
+}
+
+$fetcher = new Fetcher(['concurrency' => $concurrency, 'timeout' => 15]);
+$robots  = RobotsTxt::fromUrl($url, $fetcher);
+$crawler = new Crawler($fetcher, $robots);
+
+$pages = $crawler->crawl($url, $maxPages, $maxDepth);
+$files = SitemapWriter::write($pages, $out, 50000, $publicBase);
+
+echo "✅ Generated " . count($files) . " sitemap file(s) in '$out'." . PHP_EOL;

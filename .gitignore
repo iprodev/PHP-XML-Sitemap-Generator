@@ -1,0 +1,5 @@
+/vendor/
+/output/
+/.venv
+/.env
+.DS_Store
