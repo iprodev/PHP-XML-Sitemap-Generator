@@ -1,0 +1,179 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.0.0] - 2025-10-18
+
+### 🎉 Major Improvements
+
+This release represents a complete overhaul of the codebase with numerous bug fixes, improvements, and new features.
+
+### ✨ Added
+
+- **Comprehensive Error Handling**
+  - Try-catch blocks throughout all classes
+  - Proper exception types (`InvalidArgumentException`, `RuntimeException`)
+  - Detailed error messages with context
+  - Graceful degradation for non-critical errors
+
+- **PSR-3 Logging Support**
+  - Full PSR-3 compatible logging
+  - Console logger with color-coded output
+  - Verbose mode for debugging
+  - Progress tracking and statistics
+
+- **Enhanced CLI Interface**
+  - Professional help messages
+  - Input validation and sanitization
+  - Progress indicators
+  - Detailed output with statistics
+  - Memory and time tracking
+  - Color-coded log levels
+
+- **Input Validation**
+  - URL format validation
+  - Numeric parameter bounds checking
+  - Path sanitization
+  - File system permission checks
+
+- **Improved Parser**
+  - Better HTML parsing with encoding handling
+  - Support for malformed HTML
+  - Meta robots tag detection
+  - Multiple canonical URL formats
+  - Improved link extraction
+
+- **Enhanced RobotsTxt**
+  - Wildcard pattern matching (`*` and `$`)
+  - Allow directive support
+  - Better rule precedence handling
+  - Port-aware URL parsing
+  - Comprehensive rule testing
+
+- **Better SitemapWriter**
+  - XML schema validation
+  - Proper XML escaping
+  - Date format validation
+  - File size checking
+  - Atomic file operations
+  - Better index file generation
+
+- **New Utils Class**
+  - Byte formatting
+  - Duration formatting
+  - Progress bar generation
+  - Memory usage reporting
+  - URL cleaning and normalization
+
+- **Comprehensive Tests**
+  - ParserTest with 10+ test cases
+  - RobotsTxtTest with wildcard testing
+  - UtilsTest for utility functions
+  - Edge case coverage
+  - Malformed input handling
+
+### 🔧 Fixed
+
+- **Crawler Bugs**
+  - Fixed `$that` closure binding (now uses proper closure binding)
+  - Fixed race conditions in concurrent crawling
+  - Fixed memory leaks in long-running crawls
+  - Fixed duplicate URL detection
+  - Fixed canonical URL handling
+  - Proper content-type detection
+
+- **Fetcher Issues**
+  - Fixed logger not being used
+  - Added proper URL validation
+  - Improved error handling for network failures
+  - Better redirect handling
+  - Fixed timeout configurations
+
+- **Parser Problems**
+  - Removed `@` error suppression (now uses `libxml_use_internal_errors`)
+  - Fixed UTF-8 encoding issues
+  - Better handling of malformed HTML
+  - Fixed relative URL resolution
+  - Improved fragment handling
+
+- **RobotsTxt Issues**
+  - Fixed simple pattern matching (now supports wildcards)
+  - Fixed Allow rule precedence
+  - Better comment handling
+  - Fixed empty rule handling
+  - Improved user-agent matching
+
+- **SitemapWriter Issues**
+  - Added path traversal protection
+  - Fixed directory creation permissions
+  - Improved error messages
+  - Better file validation
+  - Fixed gzip compression errors
+
+- **General Improvements**
+  - PHP 8.0+ compatibility
+  - Better memory management
+  - Improved performance
+  - Reduced code duplication
+  - Better code organization
+
+### 🚀 Performance
+
+- Optimized link extraction algorithm
+- Better memory usage in large crawls
+- Improved concurrent request handling
+- Faster XML generation
+- Reduced redundant operations
+
+### 🔒 Security
+
+- Path traversal prevention in SitemapWriter
+- XML injection prevention
+- URL validation and sanitization
+- Proper escaping in all outputs
+- Safe file operations
+
+### 📚 Documentation
+
+- Comprehensive README with examples
+- Detailed API documentation
+- CLI usage examples
+- Docker usage guide
+- Best practices section
+- Performance tips
+- Security considerations
+
+### 🧪 Testing
+
+- Increased test coverage
+- Added edge case tests
+- Malformed input tests
+- Integration tests
+- Better test organization
+
+### ⚠️ Breaking Changes
+
+- `Crawler` constructor now accepts optional `LoggerInterface`
+- `Fetcher` constructor now accepts optional `LoggerInterface`
+- Some internal method signatures changed
+- Improved exception handling may affect error catching
+
+### 📝 Notes
+
+This release focuses on production-readiness, reliability, and developer experience. All known bugs have been fixed, and the codebase now follows best practices for PHP development.
+
+---
+
+## [1.0.0] - Initial Release
+
+### Added
+- Basic sitemap generation
+- Concurrent crawling
+- Robots.txt support
+- Gzip compression
+- CLI tool
+- Docker support
+
