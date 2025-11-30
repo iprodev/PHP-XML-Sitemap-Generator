@@ -45,7 +45,7 @@ HTML;
     public function testResolveUrl(): void
     {
         $baseUrl = 'https://example.com/path/';
-        
+
         // Absolute URL
         $this->assertEquals(
             'https://example.com/page',
@@ -165,7 +165,7 @@ HTML;
     public function testMalformedHtmlHandling(): void
     {
         $malformedHtml = '<html><body><a href="/page">Link</a><div><a href="/page2">';
-        
+
         $baseUrl = 'https://example.com/';
         $links = Parser::extractLinks($malformedHtml, $baseUrl);
 

@@ -46,7 +46,7 @@ class FileCacheTest extends TestCase
         $value = 'test value';
 
         $this->assertFalse($this->cache->has($key));
-        
+
         $this->cache->set($key, $value);
         $this->assertTrue($this->cache->has($key));
     }
@@ -103,7 +103,7 @@ class FileCacheTest extends TestCase
     public function testCleanup(): void
     {
         $cache = new FileCache($this->cacheDir, 1);
-        
+
         $cache->set('key1', 'value1');
         $cache->set('key2', 'value2');
 

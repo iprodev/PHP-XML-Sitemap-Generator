@@ -66,7 +66,7 @@ ROBOTS;
     public function testEmptyRobotsTxt(): void
     {
         $robots = new RobotsTxt();
-        
+
         $this->assertTrue($robots->isAllowed('https://example.com/any/path'));
     }
 

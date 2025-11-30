@@ -68,12 +68,12 @@ class UtilsTest extends TestCase
             'https://example.com/path',
             Utils::cleanUrl('https://example.com/path?query=1#fragment')
         );
-        
+
         $this->assertEquals(
             'https://example.com/path',
             Utils::cleanUrl('https://example.com/path?query=1', true)
         );
-        
+
         $this->assertEquals(
             'https://example.com/path?query=1',
             Utils::cleanUrl('https://example.com/path?query=1', false)
