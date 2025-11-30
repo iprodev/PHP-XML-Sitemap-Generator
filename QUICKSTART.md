@@ -19,7 +19,7 @@ docker pull iprodev/sitemap-generator-pro:latest
 ### Option 3: Manual
 
 ```bash
-git clone https://github.com/iprodev/sitemap-generator-pro.git
+git clone https://github.com/iprodev/PHP-XML-Sitemap-Generator.git
 cd sitemap-generator-pro
 composer install
 ```
@@ -314,7 +314,7 @@ curl "https://www.google.com/ping?sitemap=https://example.com/sitemap-index.xml"
 1. Read the [Complete Documentation](README.md)
 2. Explore [Advanced Features](FEATURES.md)
 3. Check [Examples](examples/)
-4. Join [Discussions](https://github.com/iprodev/sitemap-generator-pro/discussions)
+4. Join [Discussions](https://github.com/iprodev/PHP-XML-Sitemap-Generator/discussions)
 
 ## 💡 Tips
 
@@ -328,9 +328,9 @@ curl "https://www.google.com/ping?sitemap=https://example.com/sitemap-index.xml"
 
 ## 🆘 Need Help?
 
-- Check [FAQ](https://github.com/iprodev/sitemap-generator-pro/wiki/FAQ)
-- Open an [Issue](https://github.com/iprodev/sitemap-generator-pro/issues)
-- Join [Discussions](https://github.com/iprodev/sitemap-generator-pro/discussions)
+- Check [FAQ](https://github.com/iprodev/PHP-XML-Sitemap-Generator/wiki/FAQ)
+- Open an [Issue](https://github.com/iprodev/PHP-XML-Sitemap-Generator/issues)
+- Join [Discussions](https://github.com/iprodev/PHP-XML-Sitemap-Generator/discussions)
 
 ---
 

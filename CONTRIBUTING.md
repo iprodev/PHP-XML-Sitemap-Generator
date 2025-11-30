@@ -79,7 +79,7 @@ Feature suggestions are welcome! Please provide:
 
 ```bash
 # Clone repository
-git clone https://github.com/iprodev/sitemap-generator-pro.git
+git clone https://github.com/iprodev/PHP-XML-Sitemap-Generator.git
 cd sitemap-generator-pro
 
 # Install dependencies
@@ -445,7 +445,7 @@ sitemap-generator-pro/
 
 ## ❓ Questions?
 
-- Open a [Discussion](https://github.com/iprodev/sitemap-generator-pro/discussions)
+- Open a [Discussion](https://github.com/iprodev/PHP-XML-Sitemap-Generator/discussions)
 - Join our [Discord](https://discord.gg/example) (if available)
 - Email: support@iprodev.com
 

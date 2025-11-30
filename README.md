@@ -2,11 +2,13 @@
 
 A professional, production-ready PHP sitemap generator by **iProDev (Hemn Chawroka)** — supports concurrency, robots.txt, gzip compression, sitemap index files, and comprehensive error handling.
 
+[![CI/CD Pipeline](https://github.com/iprodev/PHP-XML-Sitemap-Generator/actions/workflows/ci.yml/badge.svg)](https://github.com/iprodev/PHP-XML-Sitemap-Generator/actions/workflows/ci.yml)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.0-blue.svg)](https://php.net)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)
 [![Version](https://img.shields.io/badge/version-3.0.0-orange.svg)](CHANGELOG.md)
+[![codecov](https://codecov.io/gh/iprodev/PHP-XML-Sitemap-Generator/branch/main/graph/badge.svg)](https://codecov.io/gh/iprodev/PHP-XML-Sitemap-Generator)
 
----
+--- 
 
 ## 🚀 What's New in v3.0
 
@@ -34,9 +36,12 @@ A professional, production-ready PHP sitemap generator by **iProDev (Hemn Chawro
 - [CLI Usage](#-cli-usage)
 - [Advanced Features](#-advanced-features)
 - [Programmatic Usage](#-programmatic-usage)
+- [Examples](#-examples)
 - [Configuration](#-configuration)
+- [API Reference](#-api-reference)
 - [Testing](#-testing)
 - [Docker](#-docker)
+- [Troubleshooting](#-troubleshooting)
 - [Contributing](#-contributing)
 
 ---
@@ -479,6 +484,88 @@ php bin/sitemap --config=sitemap.config.php
 
 ---
 
+## 📂 Examples
+
+The `examples/` directory contains ready-to-use code examples:
+
+### Basic Example (`examples/basic.php`)
+Simple sitemap generation with minimal configuration:
+
+```php
+require 'vendor/autoload.php';
+
+use IProDev\Sitemap\Fetcher;
+use IProDev\Sitemap\Crawler;
+use IProDev\Sitemap\SitemapWriter;
+use IProDev\Sitemap\RobotsTxt;
+
+$fetcher = new Fetcher(['concurrency' => 10]);
+$robots = RobotsTxt::fromUrl('https://example.com', $fetcher);
+$crawler = new Crawler($fetcher, $robots);
+
+$pages = $crawler->crawl('https://example.com', 1000, 3);
+SitemapWriter::write($pages, './output');
+```
+
+### Advanced Example (`examples/advanced.php`)
+Includes caching, filtering, and rate limiting.
+
+### Comprehensive Example (`examples/comprehensive.php`)
+Full-featured example demonstrating all capabilities:
+- Database storage with change detection
+- SEO analysis and quality checks
+- Performance metrics
+- Webhook notifications
+- Image sitemap generation
+- Resume capability
+
+Run the comprehensive example:
+```bash
+php examples/comprehensive.php
+```
+
+---
+
+## 📖 API Reference
+
+### Core Classes
+
+| Class | Description |
+|-------|-------------|
+| `Fetcher` | HTTP client with concurrent request support |
+| `Crawler` | Web crawler with depth and page limits |
+| `Parser` | HTML parser for link extraction |
+| `RobotsTxt` | Robots.txt parser with wildcard support |
+| `SitemapWriter` | XML sitemap generator with gzip compression |
+| `Utils` | Utility functions (URL handling, formatting) |
+
+### Advanced Classes
+
+| Class | Description |
+|-------|-------------|
+| `Database` | SQLite/MySQL/PostgreSQL storage |
+| `ChangeDetector` | Detect URL changes between crawls |
+| `SeoAnalyzer` | Page-level SEO analysis |
+| `ContentQualityChecker` | Find duplicates, broken links, thin content |
+| `UrlFilter` | Include/exclude patterns with priority rules |
+| `FileCache` / `RedisCache` | Caching implementations |
+| `RateLimiter` | Request throttling |
+| `CrawlCheckpoint` | Resume interrupted crawls |
+| `WebhookNotifier` | Event notifications |
+| `ProxyManager` | Proxy rotation support |
+| `PerformanceMetrics` | Crawl statistics and reporting |
+
+### Sitemap Writers
+
+| Class | Description |
+|-------|-------------|
+| `SitemapWriter` | Standard XML sitemap |
+| `ImageSitemapWriter` | Image sitemap with title/caption |
+| `VideoSitemapWriter` | Video sitemap with metadata |
+| `NewsSitemapWriter` | News sitemap for Google News |
+
+---
+
 ## 🧪 Testing
 
 ```bash
@@ -545,6 +632,62 @@ docker run --rm \
 
 ---
 
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**1. Memory Exhausted Error**
+```bash
+# Increase PHP memory limit
+php -d memory_limit=512M bin/sitemap --url=https://example.com
+```
+
+**2. Too Many Open Connections**
+```bash
+# Reduce concurrency
+php bin/sitemap --url=https://example.com --concurrency=5
+```
+
+**3. Crawl Takes Too Long**
+```bash
+# Use checkpoints and resume
+php bin/sitemap --url=https://example.com --resume --checkpoint-interval=500
+```
+
+**4. Rate Limited by Server**
+```bash
+# Enable rate limiting
+php bin/sitemap --url=https://example.com --rate-limit=30 --delay=1000
+```
+
+**5. JavaScript-rendered Content Not Captured**
+```bash
+# Enable JavaScript rendering (requires Chrome/Chromium)
+php bin/sitemap --url=https://example.com --enable-javascript --chrome-path=/usr/bin/chromium
+```
+
+**6. SSL Certificate Errors**
+```php
+// In code, configure Guzzle to skip verification (not recommended for production)
+$fetcher = new Fetcher(['verify' => false]);
+```
+
+### Debug Mode
+
+Enable verbose output for debugging:
+```bash
+php bin/sitemap --url=https://example.com --verbose
+```
+
+### Logs
+
+When using database storage, check crawl history:
+```bash
+sqlite3 sitemap.db "SELECT * FROM crawls ORDER BY created_at DESC LIMIT 5;"
+```
+
+---
+
 ## 🔒 Security
 
 - Path traversal prevention
@@ -561,6 +704,43 @@ MIT License - see [LICENSE.md](LICENSE.md)
 
 ---
 
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run tests (`composer check`)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/iprodev/PHP-XML-Sitemap-Generator.git
+cd sitemap-generator-pro
+
+# Install dependencies
+composer install
+
+# Run tests
+composer test
+
+# Check code style
+composer lint
+
+# Fix code style issues
+composer phpcbf
+
+# Run static analysis
+composer analyze
+```
+
+---
+
 ## 🙏 Credits
 
 Created by **iProDev (Hemn Chawroka)** - [https://github.com/iprodev](https://github.com/iprodev)
@@ -569,9 +749,9 @@ Created by **iProDev (Hemn Chawroka)** - [https://github.com/iprodev](https://gi
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/iprodev/sitemap-generator-pro/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/iprodev/sitemap-generator-pro/discussions)
-- **Documentation**: [Wiki](https://github.com/iprodev/sitemap-generator-pro/wiki)
+- **Issues**: [GitHub Issues](https://github.com/iprodev/PHP-XML-Sitemap-Generator/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/iprodev/PHP-XML-Sitemap-Generator/discussions)
+- **Documentation**: [Wiki](https://github.com/iprodev/PHP-XML-Sitemap-Generator/wiki)
 
 ---
 

@@ -29,11 +29,11 @@
       "homepage": "https://github.com/iprodev"
     }
   ],
-  "homepage": "https://github.com/iprodev/sitemap-generator-pro",
+  "homepage": "https://github.com/iprodev/PHP-XML-Sitemap-Generator",
   "support": {
-    "issues": "https://github.com/iprodev/sitemap-generator-pro/issues",
-    "source": "https://github.com/iprodev/sitemap-generator-pro",
-    "docs": "https://github.com/iprodev/sitemap-generator-pro/wiki"
+    "issues": "https://github.com/iprodev/PHP-XML-Sitemap-Generator/issues",
+    "source": "https://github.com/iprodev/PHP-XML-Sitemap-Generator",
+    "docs": "https://github.com/iprodev/PHP-XML-Sitemap-Generator/wiki"
   },
   "autoload": {
     "psr-4": {

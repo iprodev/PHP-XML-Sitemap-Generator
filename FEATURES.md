@@ -1,5 +1,71 @@
 # Complete Features Documentation
 
+[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.0-8892BF.svg)](https://www.php.net/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](CHANGELOG.md)
+
+This document provides comprehensive documentation for all features available in PHP XML Sitemap Generator v3.0.
+
+## 📋 Overview
+
+The sitemap generator provides enterprise-grade features for crawling websites and generating XML sitemaps. It's designed for both small websites and large-scale applications with millions of pages.
+
+### Key Capabilities
+
+| Category | Features |
+|----------|----------|
+| **Performance** | Concurrent requests, caching (File/Redis), rate limiting |
+| **Storage** | SQLite/MySQL/PostgreSQL database, change detection |
+| **Analysis** | SEO scoring, content quality, duplicate detection |
+| **Sitemaps** | Standard, Image, Video, News sitemaps |
+| **Advanced** | JavaScript rendering, proxy rotation, webhooks |
+| **Operations** | Resume capability, scheduled crawling, metrics |
+
+### Requirements
+
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| PHP | >= 8.0 | Required |
+| ext-curl | * | HTTP requests |
+| ext-xml | * | XML generation |
+| ext-mbstring | * | String handling |
+| ext-zlib | * | Gzip compression |
+| ext-pdo | * | Database storage |
+| ext-redis | * | Optional: Redis cache |
+| ext-posix | * | Optional: Headless browser |
+| Chrome/Chromium | Any | Optional: JS rendering |
+
+### Quick Start
+
+```php
+<?php
+require 'vendor/autoload.php';
+
+use IProDev\Sitemap\Fetcher;
+use IProDev\Sitemap\Crawler;
+use IProDev\Sitemap\SitemapWriter;
+use IProDev\Sitemap\RobotsTxt;
+
+// Initialize components
+$fetcher = new Fetcher(['concurrency' => 10]);
+$robots = RobotsTxt::fromUrl('https://example.com', $fetcher);
+$crawler = new Crawler($fetcher, $robots);
+
+// Crawl the site
+$pages = $crawler->crawl('https://example.com', 1000, 3);
+
+// Generate sitemap
+SitemapWriter::write($pages, './output', 50000, 'https://example.com');
+```
+
+Or use the CLI:
+
+```bash
+php bin/sitemap --url=https://example.com --out=./sitemaps --concurrency=10
+```
+
+---
+
 ## 📚 Table of Contents
 
 1. [Cache System](#1-cache-system)
@@ -18,6 +84,8 @@
 14. [Interactive Mode](#14-interactive-mode)
 15. [Proxy Support](#15-proxy-support)
 16. [JavaScript Rendering](#16-javascript-rendering)
+17. [Environment Variables](#17-environment-variables)
+18. [Complete Example](#18-complete-example)
 
 ---
 
@@ -931,6 +999,58 @@ php bin/sitemap \
   --enable-javascript \
   --chrome-path=/usr/bin/chromium \
   --wait-for-ajax=5000
+```
+
+---
+
+## 17. Environment Variables
+
+The following environment variables can be used to configure the generator:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SITEMAP_CONCURRENCY` | Number of concurrent requests | `10` |
+| `SITEMAP_TIMEOUT` | Request timeout in seconds | `30` |
+| `SITEMAP_USER_AGENT` | Custom User-Agent string | Generator default |
+| `SITEMAP_CACHE_DIR` | Cache directory path | `./cache` |
+| `SITEMAP_CACHE_TTL` | Cache TTL in seconds | `3600` |
+| `SITEMAP_DB_DSN` | Database connection string | `sqlite:./sitemap.db` |
+| `SITEMAP_PROXY` | Proxy URL | None |
+| `SITEMAP_CHROME_PATH` | Path to Chrome/Chromium | Auto-detect |
+| `SITEMAP_LOG_LEVEL` | Log level (debug, info, warning, error) | `info` |
+
+### Usage Example
+
+```bash
+export SITEMAP_CONCURRENCY=20
+export SITEMAP_CACHE_DIR=/tmp/sitemap-cache
+export SITEMAP_DB_DSN="mysql:host=localhost;dbname=sitemap"
+
+php bin/sitemap --url=https://example.com
+```
+
+---
+
+## 18. Complete Example
+
+For a comprehensive example that demonstrates all features working together, see the [comprehensive.php](examples/comprehensive.php) file. This example includes:
+
+- Cache initialization (File/Redis)
+- Database setup and crawl tracking
+- Rate limiting configuration
+- URL filtering with priority rules
+- Webhook notifications setup
+- Performance metrics tracking
+- Checkpoint/resume capability
+- SEO analysis
+- Content quality checking
+- Change detection and reporting
+- Multiple sitemap types generation
+
+Run the comprehensive example:
+
+```bash
+php examples/comprehensive.php
 ```
 
 ---
