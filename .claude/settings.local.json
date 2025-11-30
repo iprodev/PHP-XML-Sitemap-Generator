@@ -6,7 +6,9 @@
       "Bash(dir:*)",
       "Bash(\"vendor\\bin\\phpunit.bat\" --colors=always)",
       "Bash(\"vendor\\bin\\phpcbf.bat\" --standard=PSR12 src/)",
-      "Bash(\"vendor\\bin\\phpcbf.bat\" --standard=PSR12 tests/)"
+      "Bash(\"vendor\\bin\\phpcbf.bat\" --standard=PSR12 tests/)",
+      "Bash(\"vendor\\bin\\phpcbf.bat\" --standard=PSR12 src/ tests/)",
+      "Bash(\"vendor\\bin\\phpcs.bat\" --standard=PSR12 src/ tests/)"
     ],
     "deny": [],
     "ask": []

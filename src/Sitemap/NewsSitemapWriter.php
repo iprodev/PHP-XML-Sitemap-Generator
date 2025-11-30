@@ -48,7 +48,9 @@ class NewsSitemapWriter
 
                 // Publication info
                 $xml->startElement('news:publication');
-                $xml->writeElement('news:name', htmlspecialchars($page['publication_name'] ?? 'News Site', ENT_XML1 | ENT_QUOTES, 'UTF-8'));
+                $pubName = $page['publication_name'] ?? 'News Site';
+                $encFlags = ENT_XML1 | ENT_QUOTES;
+                $xml->writeElement('news:name', htmlspecialchars($pubName, $encFlags, 'UTF-8'));
                 $xml->writeElement('news:language', $page['language'] ?? 'en');
                 $xml->endElement(); // news:publication
 

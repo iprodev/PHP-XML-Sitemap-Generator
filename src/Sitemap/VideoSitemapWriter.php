@@ -38,22 +38,28 @@ class VideoSitemapWriter
                 $xml->startElement('url');
                 $xml->writeElement('loc', htmlspecialchars($page['url'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
 
+                $encFlags = ENT_XML1 | ENT_QUOTES;
                 foreach ($page['videos'] as $video) {
                     $xml->startElement('video:video');
 
                     // Required fields
-                    $xml->writeElement('video:thumbnail_loc', htmlspecialchars($video['thumbnail'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
-                    $xml->writeElement('video:title', htmlspecialchars($video['title'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
-                    $xml->writeElement('video:description', htmlspecialchars($video['description'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
+                    $thumb = htmlspecialchars($video['thumbnail'], $encFlags, 'UTF-8');
+                    $xml->writeElement('video:thumbnail_loc', $thumb);
+                    $title = htmlspecialchars($video['title'], $encFlags, 'UTF-8');
+                    $xml->writeElement('video:title', $title);
+                    $desc = htmlspecialchars($video['description'], $encFlags, 'UTF-8');
+                    $xml->writeElement('video:description', $desc);
 
                     // Optional: content location
                     if (!empty($video['content_url'])) {
-                        $xml->writeElement('video:content_loc', htmlspecialchars($video['content_url'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
+                        $contentUrl = htmlspecialchars($video['content_url'], $encFlags, 'UTF-8');
+                        $xml->writeElement('video:content_loc', $contentUrl);
                     }
 
                     // Optional: player location
                     if (!empty($video['player_url'])) {
-                        $xml->writeElement('video:player_loc', htmlspecialchars($video['player_url'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
+                        $playerUrl = htmlspecialchars($video['player_url'], $encFlags, 'UTF-8');
+                        $xml->writeElement('video:player_loc', $playerUrl);
                     }
 
                     // Optional: duration (seconds)

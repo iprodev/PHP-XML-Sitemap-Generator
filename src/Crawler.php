@@ -77,7 +77,10 @@ class Crawler
                 $this->logger->error("Error during batch fetch", ['error' => $e->getMessage()]);
             }
 
-            $this->logger->info("Progress: {$this->processed}/{$maxPages} pages processed, " . count($this->seen) . " unique URLs found");
+            $uniqueUrls = count($this->seen);
+            $this->logger->info(
+                "Progress: {$this->processed}/{$maxPages} pages processed, {$uniqueUrls} unique URLs found"
+            );
         }
 
         $this->logger->info("Crawl completed", [

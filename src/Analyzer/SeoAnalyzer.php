@@ -299,9 +299,10 @@ class SeoAnalyzer
             $density = ($count / $totalWords) * 100;
 
             if ($density > 3 && strlen($word) > 4) { // Ignore common short words
+                $pct = round($density, 2);
                 $this->recommendations[] = [
                     'type' => 'keyword_density',
-                    'message' => "High density for '{$word}' (" . round($density, 2) . "%). May appear as keyword stuffing"
+                    'message' => "High density for '{$word}' ({$pct}%). May appear as keyword stuffing"
                 ];
             }
         }

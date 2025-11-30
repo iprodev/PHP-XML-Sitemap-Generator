@@ -38,8 +38,10 @@ class HeadlessBrowser
             return;
         }
 
+        $flags = '--headless --disable-gpu --remote-debugging-port=%d';
+        $flags .= ' --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage';
         $command = sprintf(
-            '%s --headless --disable-gpu --remote-debugging-port=%d --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage > /dev/null 2>&1 & echo $!',
+            '%s ' . $flags . ' > /dev/null 2>&1 & echo $!',
             escapeshellarg($this->chromePath),
             $this->port
         );
