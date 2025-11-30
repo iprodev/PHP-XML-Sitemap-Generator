@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  # PHP Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sitemap-generator
+    volumes:
+      - ./:/app
+      - ./output:/app/output
+      - ./cache:/app/cache
+    environment:
+      - PHP_MEMORY_LIMIT=512M
+    networks:
+      - sitemap-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: sitemap-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - sitemap-network
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: sitemap-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: sitemap
+      MYSQL_USER: sitemap
+      MYSQL_PASSWORD: sitemap
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - sitemap-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: sitemap-postgres
+    environment:
+      POSTGRES_DB: sitemap
+      POSTGRES_USER: sitemap
+      POSTGRES_PASSWORD: sitemap
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - sitemap-network
+
+  # Chrome for JavaScript Rendering
+  chrome:
+    image: browserless/chrome:latest
+    container_name: sitemap-chrome
+    ports:
+      - "9222:3000"
+    environment:
+      - CONNECTION_TIMEOUT=600000
+      - MAX_CONCURRENT_SESSIONS=10
+      - PREBOOT_CHROME=true
+    networks:
+      - sitemap-network
+
+  # PHPMyAdmin (optional)
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: sitemap-phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: root
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - sitemap-network
+
+  # Redis Commander (optional)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: sitemap-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - sitemap-network
+
+networks:
+  sitemap-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  mysql-data:
+  postgres-data:

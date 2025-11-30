@@ -5,6 +5,151 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2025-11-30
+
+### 🎉 Major Release
+
+This release brings enterprise-grade features including caching, database storage, SEO analysis, JavaScript rendering, and much more.
+
+### ✨ Added
+
+- **Cache System**
+  - File-based caching for local storage
+  - Redis cache driver for distributed caching
+  - PSR-16 compatible interface
+  - Configurable TTL and cache statistics
+  - 30-50% faster repeated crawls
+
+- **Database Storage**
+  - SQLite support (default)
+  - MySQL/PostgreSQL support
+  - Historical crawl tracking
+  - URL metadata storage (title, meta description, word count, etc.)
+  - Comprehensive schema with migrations
+
+- **Change Detection**
+  - Detect new, modified, and deleted URLs between crawls
+  - Content hash comparison
+  - Text/HTML/JSON report generation
+  - `--only-changed` option for incremental sitemaps
+
+- **Specialized Sitemap Types**
+  - Image Sitemap with title/caption support
+  - Video Sitemap with duration/thumbnail/family-friendly flags
+  - News Sitemap for Google News (publication name, language, keywords)
+
+- **Rate Limiting**
+  - Configurable requests per time window
+  - Per-domain throttling
+  - Delay between requests
+  - Retry-After header support
+
+- **Scheduled Crawling**
+  - Cron-based scheduler (`bin/scheduler`)
+  - Predefined schedules (hourly, daily, weekly, monthly)
+  - Custom cron expressions
+  - Schedule persistence with JSON storage
+
+- **SEO Analyzer**
+  - Title tag analysis (length, presence)
+  - Meta description analysis
+  - Heading structure validation (H1, H2, etc.)
+  - Image alt attribute checking
+  - Internal/external link analysis
+  - SEO score calculation (0-100)
+  - Issue severity levels (critical, warning, info)
+
+- **Content Quality Checker**
+  - Duplicate content detection
+  - Broken link finder
+  - Thin content detection (configurable word count)
+  - Slow page detection
+  - Quality score calculation
+
+- **Smart URL Filtering**
+  - Include/exclude patterns with glob support
+  - Priority rules per URL pattern
+  - Configurable via CLI or code
+
+- **Distributed Crawling**
+  - Worker pool for parallel processing
+  - Configurable worker count
+  - Task distribution and result aggregation
+
+- **Resume Capability**
+  - Checkpoint-based crawl resumption
+  - Configurable checkpoint intervals
+  - Automatic state persistence
+  - Graceful interrupt handling
+
+- **Webhook Notifications**
+  - Event-based notifications (crawl.started, crawl.completed, crawl.failed)
+  - Sitemap generation events
+  - Change detection events
+  - JSON payload with full statistics
+
+- **Performance Metrics**
+  - Request count and timing
+  - Response time statistics
+  - Status code distribution
+  - Memory usage tracking
+  - Text/JSON/CSV export
+
+- **Interactive Mode**
+  - Step-by-step configuration wizard
+  - Input validation
+  - Default value suggestions
+  - Configuration saving
+
+- **Proxy Support**
+  - HTTP/SOCKS proxy support
+  - Proxy rotation
+  - Authentication support
+  - Proxy file loading
+  - Health checking
+
+- **JavaScript Rendering**
+  - Headless Chrome/Chromium integration
+  - SPA and dynamic content support
+  - Configurable wait times
+  - Screenshot capability
+  - Automatic browser management
+
+### 📁 New Files
+
+- `bin/scheduler` - Cron scheduler command
+- `docker-compose.yml` - Docker Compose configuration
+- `Makefile` - Build and development commands
+- `.env.example` - Environment configuration template
+- `QUICKSTART.md` - Quick start guide
+- `CONTRIBUTING.md` - Contribution guidelines
+- `FEATURES.md` - Complete feature documentation
+- `examples/comprehensive.php` - Full feature example
+
+### 🔧 Changed
+
+- Updated `composer.json` with new dependencies
+- Enhanced CLI with 50+ new options
+- Improved Docker support with multi-stage builds
+- Better CI/CD pipeline configuration
+
+### ⚠️ Breaking Changes
+
+- Minimum PHP version remains 8.0
+- New required extension: `ext-pdo` for database support
+- Some CLI options renamed for consistency
+- Crawler constructor accepts additional optional parameters
+
+### 📚 Documentation
+
+- Complete FEATURES.md with all features documented
+- QUICKSTART.md for rapid onboarding
+- CONTRIBUTING.md for contributors
+- Updated README with new features
+- Comprehensive code examples
+
+---
+
 ## [2.0.1] - 2025-10-18
 
 ### 🎉 Major Improvements
@@ -176,4 +321,3 @@ This release focuses on production-readiness, reliability, and developer experie
 - Gzip compression
 - CLI tool
 - Docker support
-

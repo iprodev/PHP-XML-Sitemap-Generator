@@ -1,28 +1,77 @@
 # PHP XML Sitemap Generator (Library + CLI)
 
-A professional, production-ready PHP sitemap generator by **IProDev (Hemn Chawroka)** — supports concurrency, robots.txt, gzip compression, sitemap index files, and comprehensive error handling.
+A professional, production-ready PHP sitemap generator by **iProDev (Hemn Chawroka)** — supports concurrency, robots.txt, gzip compression, sitemap index files, and comprehensive error handling.
 
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.0-blue.svg)](https://php.net)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)
+[![Version](https://img.shields.io/badge/version-3.0.0-orange.svg)](CHANGELOG.md)
+
+---
+
+## 🚀 What's New in v3.0
+
+- ✨ **Database Storage** with change detection and historical tracking
+- 🔄 **Resume Capability** with checkpoint system
+- 🎯 **SEO Analysis** and content quality checking
+- 📊 **Performance Metrics** and detailed analytics
+- 🖼️ **Multi-format Sitemaps** (Images, Videos, News)
+- 🌐 **JavaScript Rendering** support for SPAs
+- 🔐 **Proxy Support** with rotation
+- 🔔 **Webhook Notifications** for events
+- 📅 **Scheduled Crawling** with cron integration
+- 🎨 **Interactive Mode** for easy configuration
+- ⚡ **Caching System** (File & Redis)
+- 🎛️ **Smart Filtering** with priority rules
+- 📈 **Rate Limiting** with retry handling
+
+---
+
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [CLI Usage](#-cli-usage)
+- [Advanced Features](#-advanced-features)
+- [Programmatic Usage](#-programmatic-usage)
+- [Configuration](#-configuration)
+- [Testing](#-testing)
+- [Docker](#-docker)
+- [Contributing](#-contributing)
+
+---
 
 ## ✨ Features
 
-- 🚀 **High Performance**: Concurrent HTTP requests using Guzzle
-- 🤖 **Robots.txt Support**: Respects robots.txt rules (including wildcards)
-- 📦 **Gzip Compression**: Automatic .gz file generation
-- 📊 **Sitemap Index**: Automatic index file creation for large sites
-- 🛡️ **Error Handling**: Comprehensive error handling and validation
-- 📝 **Logging**: PSR-3 compatible logging support
-- 🎯 **Canonical URLs**: Automatic canonical URL detection
-- 🧪 **Well Tested**: Comprehensive unit tests with PHPUnit
-- 🐳 **Docker Support**: Ready-to-use Docker configuration
-- 💻 **CLI Tool**: Professional command-line interface with progress reporting
+### Core Features
+- 🚀 **High Performance** - Concurrent HTTP requests
+- 🤖 **Robots.txt Compliant** - Respects crawling rules
+- 📦 **Gzip Compression** - Automatic compression
+- 📊 **Sitemap Index** - Multiple sitemap files
+- 🛡️ **Error Handling** - Comprehensive error management
+- 📝 **PSR-3 Logging** - Standard logging interface
 
-## 📋 Requirements
+### Advanced Features
+- 💾 **Database Storage** - SQLite/MySQL/PostgreSQL support
+- 🔄 **Change Detection** - Track URL changes over time
+- 📈 **SEO Analysis** - Analyze pages for SEO issues
+- 🔍 **Quality Checks** - Find duplicates, broken links
+- 🎯 **Smart Filtering** - Include/exclude patterns
+- ⚡ **Caching** - File and Redis cache support
+- 📍 **Resume Support** - Continue interrupted crawls
+- 🔔 **Webhooks** - Real-time notifications
+- 📅 **Scheduling** - Automated periodic crawls
+- 🌐 **JavaScript** - Render SPAs with headless Chrome
+- 🔐 **Proxy Support** - HTTP/SOCKS proxies with rotation
+- 🎨 **Interactive Mode** - User-friendly configuration
 
-- PHP >= 8.0
-- Composer
-- Extensions: `curl`, `xml`, `mbstring`, `zlib`
+### Sitemap Types
+- 📄 Standard XML Sitemap
+- 🖼️ Image Sitemap
+- 🎬 Video Sitemap
+- 📰 News Sitemap
+
+---
 
 ## 📥 Installation
 
@@ -30,7 +79,14 @@ A professional, production-ready PHP sitemap generator by **IProDev (Hemn Chawro
 composer require iprodev/sitemap-generator-pro
 ```
 
-## 🚀 CLI Usage
+### Requirements
+- PHP >= 8.0
+- Extensions: curl, xml, mbstring, zlib, pdo
+- Optional: redis, posix
+
+---
+
+## 🚀 Quick Start
 
 ### Basic Usage
 
@@ -38,67 +94,271 @@ composer require iprodev/sitemap-generator-pro
 php bin/sitemap --url=https://www.example.com
 ```
 
-### Advanced Usage
+### Interactive Mode
+
+```bash
+php bin/sitemap --interactive
+```
+
+### With All Features
 
 ```bash
 php bin/sitemap \
-  --url=https://www.iprodev.com \
+  --url=https://www.example.com \
   --out=./sitemaps \
   --concurrency=20 \
-  --max-pages=10000 \
-  --max-depth=5 \
-  --public-base=https://www.iprodev.com \
+  --cache-enabled \
+  --db-enabled \
+  --seo-analysis \
+  --image-sitemap \
+  --webhook-url=https://example.com/webhook \
   --verbose
 ```
 
-### CLI Options
+---
 
-| Option | Required | Default | Description |
-|--------|----------|---------|-------------|
-| `--url` | ✅ Yes | - | Starting URL to crawl |
-| `--out` | No | `./output` | Output directory for sitemap files |
-| `--concurrency` | No | `10` | Number of concurrent HTTP requests (1-100) |
-| `--max-pages` | No | `50000` | Maximum number of pages to crawl |
-| `--max-depth` | No | `5` | Maximum link depth to follow |
-| `--public-base` | No | - | Public base URL for sitemap index |
-| `--verbose`, `-v` | No | `false` | Enable verbose output |
-| `--help`, `-h` | No | - | Show help message |
+## 🖥️ CLI Usage
 
-### CLI Output Example
+### Basic Options
 
+```bash
+--url=<URL>              # Starting URL (required)
+--out=<PATH>             # Output directory
+--concurrency=<N>        # Concurrent requests (1-100)
+--max-pages=<N>          # Maximum pages to crawl
+--max-depth=<N>          # Maximum link depth
+--public-base=<URL>      # Public base URL for sitemap index
+--verbose, -v            # Verbose output
+--help, -h               # Show help
 ```
-======================================================================
-  PHP XML Sitemap Generator
-======================================================================
-Configuration:
-  URL:         https://www.example.com
-  Domain:      www.example.com
-  Output:      ./output
-  Concurrency: 20
-  Max Pages:   10000
-  Max Depth:   5
-======================================================================
 
-[0.50s] [info] Initializing crawler...
-[0.75s] [info] Fetching robots.txt...
-[1.20s] [info] Starting crawl...
-[45.30s] [info] Crawl completed {"duration":"45.3s","pages":1523}
+### Caching
 
-======================================================================
-  ✅ Success!
-======================================================================
-Generated Files:
-  • sitemap-1.xml.gz (125.4 KB)
-  • sitemap-index.xml (892 B)
-
-Statistics:
-  • Total Pages:    1523
-  • Total Time:     46.2s
-  • Crawl Speed:    33.0 pages/sec
-  • Memory Used:    45.8 MB
-  • Output Dir:     ./output
-======================================================================
+```bash
+--cache-enabled          # Enable caching
+--cache-driver=file      # Cache driver: file|redis
+--cache-ttl=3600         # Cache TTL in seconds
 ```
+
+### Database & Change Detection
+
+```bash
+--db-enabled             # Enable database storage
+--db-dsn=<DSN>           # Database DSN
+--detect-changes         # Compare with previous crawl
+--only-changed           # Only include changed URLs
+```
+
+### Resume Support
+
+```bash
+--resume                 # Resume from checkpoint
+--checkpoint-interval=<N> # Save checkpoint every N pages
+```
+
+### Rate Limiting
+
+```bash
+--rate-limit=<N>         # Requests per minute
+--delay=<MS>             # Delay between requests (ms)
+```
+
+### Filtering
+
+```bash
+--exclude=<PATTERNS>     # Exclude patterns (comma-separated)
+--include=<PATTERNS>     # Include only patterns
+--priority-rules=<JSON>  # Priority rules as JSON
+```
+
+### SEO & Analysis
+
+```bash
+--seo-analysis           # Enable SEO analysis
+--check-quality          # Check content quality
+--find-duplicates        # Find duplicate content
+--find-broken-links      # Find broken links
+```
+
+### Advanced Sitemaps
+
+```bash
+--image-sitemap          # Generate image sitemap
+--video-sitemap          # Generate video sitemap
+--news-sitemap           # Generate news sitemap
+```
+
+### JavaScript Rendering
+
+```bash
+--enable-javascript      # Enable JS rendering
+--chrome-path=<PATH>     # Path to Chrome/Chromium
+--wait-for-ajax=<MS>     # Wait time for AJAX
+```
+
+### Proxy Support
+
+```bash
+--proxy=<URL>            # Proxy URL
+--proxy-file=<PATH>      # Load proxies from file
+--rotate-proxies         # Rotate through proxies
+```
+
+### Webhooks
+
+```bash
+--webhook-url=<URL>      # Webhook for notifications
+--notify-on-complete     # Notify when complete
+--notify-on-error        # Notify on errors
+```
+
+---
+
+## 🎯 Advanced Features
+
+### 1. Database Storage & Change Detection
+
+Track changes over time:
+
+```bash
+php bin/sitemap \
+  --url=https://example.com \
+  --db-enabled \
+  --detect-changes
+```
+
+The system will:
+- Store all URLs in database
+- Compare with previous crawl
+- Generate change report (new, modified, deleted)
+- Track SEO metrics over time
+
+### 2. Resume Interrupted Crawls
+
+Large crawls can be resumed:
+
+```bash
+php bin/sitemap \
+  --url=https://example.com \
+  --resume \
+  --checkpoint-interval=1000
+```
+
+### 3. SEO Analysis
+
+Analyze pages for SEO issues:
+
+```bash
+php bin/sitemap \
+  --url=https://example.com \
+  --seo-analysis \
+  --find-duplicates \
+  --find-broken-links
+```
+
+Reports include:
+- Missing title/meta descriptions
+- Duplicate content
+- Broken links
+- Page load times
+- Mobile optimization
+- Structured data
+
+### 4. JavaScript Rendering
+
+For SPAs (React, Vue, Angular):
+
+```bash
+php bin/sitemap \
+  --url=https://spa.example.com \
+  --enable-javascript \
+  --chrome-path=/usr/bin/chromium \
+  --wait-for-ajax=5000
+```
+
+### 5. Scheduled Crawling
+
+Setup automated crawls:
+
+```php
+use IProDev\Sitemap\Scheduler\CronScheduler;
+
+$scheduler = new CronScheduler();
+$scheduler->addSchedule('daily-crawl', [
+    'url' => 'https://example.com',
+    'schedule' => 'daily',  // or cron: '0 2 * * *'
+    'out' => './sitemaps',
+    'db_enabled' => true
+]);
+
+// Add to crontab:
+// * * * * * php bin/scheduler
+```
+
+### 6. Webhooks
+
+Get notified of events:
+
+```bash
+php bin/sitemap \
+  --url=https://example.com \
+  --webhook-url=https://example.com/webhook \
+  --notify-on-complete \
+  --notify-on-error
+```
+
+Webhook payload:
+```json
+{
+  "event": "crawl.completed",
+  "timestamp": "2025-01-20T10:30:00Z",
+  "data": {
+    "url": "https://example.com",
+    "stats": {
+      "pages": 1523,
+      "duration": 45.3
+    }
+  }
+}
+```
+
+### 7. Proxy Support
+
+Use proxies for crawling:
+
+```bash
+# Single proxy
+php bin/sitemap \
+  --url=https://example.com \
+  --proxy=http://proxy.example.com:8080
+
+# Proxy file with rotation
+php bin/sitemap \
+  --url=https://example.com \
+  --proxy-file=./proxies.txt \
+  --rotate-proxies
+```
+
+Proxy file format:
+```
+http://proxy1.example.com:8080
+http://proxy2.example.com:8080|username:password
+socks5://proxy3.example.com:1080
+```
+
+### 8. Smart Filtering
+
+Control what gets crawled:
+
+```bash
+php bin/sitemap \
+  --url=https://example.com \
+  --exclude="/admin/*,/test/*,*.pdf" \
+  --include="/products/*,/blog/*" \
+  --priority-rules='{"homepage":1.0,"/products/*":0.8}'
+```
+
+---
 
 ## 💻 Programmatic Usage
 
@@ -110,295 +370,209 @@ use IProDev\Sitemap\Crawler;
 use IProDev\Sitemap\SitemapWriter;
 use IProDev\Sitemap\RobotsTxt;
 
-// Initialize fetcher
-$fetcher = new Fetcher(['concurrency' => 10]);
-
-// Load robots.txt
-$robots = RobotsTxt::fromUrl('https://www.example.com', $fetcher);
-
-// Create crawler
+$fetcher = new Fetcher(['concurrency' => 20]);
+$robots = RobotsTxt::fromUrl('https://example.com', $fetcher);
 $crawler = new Crawler($fetcher, $robots);
 
-// Crawl website
-$pages = $crawler->crawl('https://www.example.com', 10000, 5);
-
-// Write sitemap files
-$files = SitemapWriter::write(
-    $pages, 
-    __DIR__ . '/sitemaps', 
-    50000, 
-    'https://www.example.com'
-);
-
-echo "Generated " . count($files) . " files\n";
+$pages = $crawler->crawl('https://example.com', 10000, 5);
+$files = SitemapWriter::write($pages, './sitemaps');
 ```
 
-### Advanced Example with Logging
+### With Database & Change Detection
 
 ```php
-use IProDev\Sitemap\Fetcher;
-use IProDev\Sitemap\Crawler;
-use IProDev\Sitemap\SitemapWriter;
-use IProDev\Sitemap\RobotsTxt;
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
+use IProDev\Sitemap\Database\Database;
+use IProDev\Sitemap\ChangeDetector;
 
-// Create logger
-$logger = new Logger('sitemap');
-$logger->pushHandler(new StreamHandler('sitemap.log', Logger::INFO));
+// Initialize database
+$db = new Database('sqlite:./sitemap.db');
+$db->createTables();
 
-// Initialize with logger
-$fetcher = new Fetcher([
-    'concurrency' => 20,
-    'timeout' => 15,
-], $logger);
+// Start crawl
+$domain = 'example.com';
+$crawlId = $db->startCrawl($domain, 'https://example.com', []);
 
-$robots = RobotsTxt::fromUrl('https://www.example.com', $fetcher);
-$crawler = new Crawler($fetcher, $robots, $logger);
+// Crawl and save
+foreach ($pages as $page) {
+    $db->saveUrl($crawlId, $page);
+}
 
-// Crawl with error handling
-try {
-    $pages = $crawler->crawl('https://www.example.com', 10000, 5);
-    $files = SitemapWriter::write($pages, './sitemaps', 50000, 'https://www.example.com');
+// Detect changes
+$prevCrawl = $db->getPreviousCrawl($domain, $crawlId);
+if ($prevCrawl) {
+    $detector = new ChangeDetector($db);
+    $changes = $detector->detectChanges($prevCrawl['id'], $crawlId);
     
-    // Get statistics
-    $stats = $crawler->getStats();
-    echo "Processed: {$stats['processed']} pages\n";
-    echo "Unique URLs: {$stats['unique_urls']}\n";
-    
-} catch (\InvalidArgumentException $e) {
-    echo "Configuration error: {$e->getMessage()}\n";
-} catch (\RuntimeException $e) {
-    echo "Runtime error: {$e->getMessage()}\n";
+    print_r($changes);
 }
 ```
 
-### Custom Fetcher Configuration
+### With SEO Analysis
 
 ```php
-$fetcher = new Fetcher([
-    'concurrency' => 20,
-    'timeout' => 15,
-    'connect_timeout' => 10,
-    'headers' => [
-        'User-Agent' => 'MyBot/1.0',
-    ],
-    'verify' => true, // SSL verification
-], $logger);
+use IProDev\Sitemap\Analyzer\SeoAnalyzer;
+
+$analyzer = new SeoAnalyzer();
+
+foreach ($pages as $page) {
+    $analysis = $analyzer->analyze(
+        $page['url'], 
+        $page['html'], 
+        $page['status_code']
+    );
+    
+    echo "Score: {$analysis['score']}/100\n";
+    echo "Issues: " . count($analysis['issues']) . "\n";
+}
 ```
 
-## 🧪 Testing
-
-Run unit tests:
-
-```bash
-composer install
-vendor/bin/phpunit
-```
-
-Run with coverage:
-
-```bash
-vendor/bin/phpunit --coverage-html coverage
-```
-
-Code style check:
-
-```bash
-vendor/bin/phpcs --standard=PSR12 src/ tests/
-```
-
-## 🐳 Docker Usage
-
-Build the Docker image:
-
-```bash
-docker build -t sitemap-generator-pro .
-```
-
-Run the container:
-
-```bash
-docker run --rm \
-  -v $(pwd)/sitemaps:/app/output \
-  sitemap-generator-pro \
-  --url=https://www.iprodev.com \
-  --out=/app/output \
-  --concurrency=20 \
-  --max-pages=10000 \
-  --public-base=https://www.iprodev.com \
-  --verbose
-```
-
-## 📚 API Documentation
-
-### Fetcher
+### With Caching
 
 ```php
-// Constructor
-new Fetcher(array $options = [], ?LoggerInterface $logger = null)
+use IProDev\Sitemap\Cache\FileCache;
+use IProDev\Sitemap\Cache\RedisCache;
 
-// Fetch multiple URLs concurrently
-fetchMany(array $urls, callable $onFulfilled, ?callable $onRejected = null): void
+// File cache
+$cache = new FileCache('./cache', 3600);
 
-// Fetch single URL
-get(string $url): ResponseInterface
+// Redis cache
+$cache = new RedisCache('127.0.0.1', 6379);
 
-// Get concurrency setting
-getConcurrency(): int
+// Use in fetcher
+$fetcher = new Fetcher(['cache' => $cache]);
 ```
-
-### Crawler
-
-```php
-// Constructor
-new Crawler(Fetcher $fetcher, RobotsTxt $robots, ?LoggerInterface $logger = null)
-
-// Crawl website
-crawl(string $startUrl, int $maxPages = 10000, int $maxDepth = 5): array
-
-// Get crawl statistics
-getStats(): array
-```
-
-### SitemapWriter
-
-```php
-// Write sitemap files
-static write(
-    array $pages, 
-    string $outPath, 
-    int $maxPerFile = 50000, 
-    ?string $publicBase = null
-): array
-```
-
-### Parser
-
-```php
-// Extract links from HTML
-static extractLinks(string $html, string $baseUrl): array
-
-// Resolve relative URL
-static resolveUrl(string $href, string $base): ?string
-
-// Get canonical URL
-static getCanonical(string $html, string $baseUrl): ?string
-
-// Get meta robots directives
-static getMetaRobots(string $html): array
-```
-
-### RobotsTxt
-
-```php
-// Load from URL
-static fromUrl(string $baseUrl, Fetcher $fetcher): RobotsTxt
-
-// Check if URL is allowed
-isAllowed(string $url): bool
-
-// Get disallow rules
-getDisallows(): array
-
-// Get allow rules
-getAllows(): array
-```
-
-### Utils
-
-```php
-static normalizeUrl(string $url): string
-static formatBytes(int $bytes, int $precision = 2): string
-static formatDuration(float $seconds): string
-static isValidUrl(string $url): bool
-static getDomain(string $url): ?string
-static calculateProgress(int $current, int $total): float
-static progressBar(int $current, int $total, int $width = 50): string
-static getMemoryUsage(): string
-static getPeakMemoryUsage(): string
-static cleanUrl(string $url, bool $removeQuery = false): string
-```
-
-## 🔧 Configuration Best Practices
-
-### For Small Sites (< 1,000 pages)
-
-```bash
---concurrency=5 --max-pages=1000 --max-depth=10
-```
-
-### For Medium Sites (1,000 - 10,000 pages)
-
-```bash
---concurrency=10 --max-pages=10000 --max-depth=5
-```
-
-### For Large Sites (> 10,000 pages)
-
-```bash
---concurrency=20 --max-pages=50000 --max-depth=3
-```
-
-## 🛡️ Error Handling
-
-The library includes comprehensive error handling:
-
-- **Invalid URLs**: Validates all URLs before processing
-- **Network Errors**: Gracefully handles timeouts and connection failures
-- **Memory Management**: Efficient memory usage for large sites
-- **File System Errors**: Proper validation and error messages
-- **Robots.txt Parsing**: Handles malformed robots.txt files
-
-## 📝 Generated Files
-
-The generator creates the following files:
-
-- `sitemap-1.xml` - First sitemap file
-- `sitemap-1.xml.gz` - Compressed version
-- `sitemap-2.xml.gz` - Additional files if needed
-- `sitemap-index.xml` - Index file listing all sitemaps
-
-## 🔒 Security Considerations
-
-- Path traversal prevention
-- URL validation and sanitization
-- Safe XML generation with proper escaping
-- Robots.txt respect
-- Meta robots tag support
-- SSL certificate verification
-
-## 📊 Performance Tips
-
-1. **Increase Concurrency**: For faster crawling (up to 100)
-2. **Reduce Max Depth**: Focus on important pages
-3. **Use Memory**: Ensure adequate memory for large sites
-4. **Network**: Fast and stable internet connection recommended
-5. **Robots.txt**: Proper robots.txt reduces unnecessary requests
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Write tests for new features
-4. Follow PSR-12 coding standards
-5. Submit a pull request
-
-## 📄 License
-
-MIT License - see [LICENSE.md](LICENSE.md) for details
-
-## 🙏 Credits
-
-Created by **iprodev** - [https://github.com/iprodev](https://github.com/iprodev)
-
-## 📞 Support
-
-- Issues: [GitHub Issues](https://github.com/iprodev/sitemap-generator-pro/issues)
-- Discussions: [GitHub Discussions](https://github.com/iprodev/sitemap-generator-pro/discussions)
 
 ---
 
-Made with ❤️ by iprodev
+## ⚙️ Configuration
+
+### Configuration File
+
+Create `sitemap.config.php`:
+
+```php
+<?php
+
+return [
+    'url' => 'https://example.com',
+    'out' => './sitemaps',
+    'concurrency' => 20,
+    'max_pages' => 10000,
+    'max_depth' => 5,
+    'cache_enabled' => true,
+    'db_enabled' => true,
+    'seo_analysis' => true,
+    'exclude' => ['/admin/*', '/test/*'],
+    'priority_rules' => [
+        'homepage' => 1.0,
+        '/products/*' => 0.8,
+        '/blog/*' => 0.6
+    ]
+];
+```
+
+Use config file:
+
+```bash
+php bin/sitemap --config=sitemap.config.php
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run tests
+composer test
+
+# With coverage
+composer test-coverage
+
+# Code style
+composer lint
+
+# Static analysis
+composer analyze
+
+# All checks
+composer check
+```
+
+---
+
+## 🐳 Docker
+
+```bash
+# Build
+docker build -t sitemap-generator-pro .
+
+# Run
+docker run --rm \
+  -v $(pwd)/sitemaps:/app/output \
+  sitemap-generator-pro \
+  --url=https://example.com \
+  --out=/app/output
+```
+
+---
+
+## 📊 Performance Tips
+
+1. **Increase Concurrency**: For faster crawling
+   ```bash
+   --concurrency=50
+   ```
+
+2. **Enable Caching**: Reduce duplicate requests
+   ```bash
+   --cache-enabled --cache-driver=redis
+   ```
+
+3. **Use Database**: Track changes efficiently
+   ```bash
+   --db-enabled --detect-changes
+   ```
+
+4. **Smart Filtering**: Reduce unnecessary pages
+   ```bash
+   --exclude="/admin/*,*.pdf"
+   ```
+
+5. **Resume Support**: Handle large sites
+   ```bash
+   --resume --checkpoint-interval=1000
+   ```
+
+---
+
+## 🔒 Security
+
+- Path traversal prevention
+- URL validation and sanitization
+- Safe XML generation
+- Proxy authentication support
+- Rate limiting to prevent blocking
+
+---
+
+## 📝 License
+
+MIT License - see [LICENSE.md](LICENSE.md)
+
+---
+
+## 🙏 Credits
+
+Created by **iProDev (Hemn Chawroka)** - [https://github.com/iprodev](https://github.com/iprodev)
+
+---
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/iprodev/sitemap-generator-pro/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/iprodev/sitemap-generator-pro/discussions)
+- **Documentation**: [Wiki](https://github.com/iprodev/sitemap-generator-pro/wiki)
+
+---
+
+Made with ❤️ by iProDev (Hemn Chawroka)

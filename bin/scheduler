@@ -1,0 +1,74 @@
+#!/usr/bin/env php
+<?php
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use IProDev\Sitemap\Scheduler\CronScheduler;
+
+$scheduler = new CronScheduler('./schedules.json');
+
+// Get schedules that should run now
+$dueSchedules = $scheduler->getDueSchedules();
+
+if (empty($dueSchedules)) {
+    echo "No schedules due to run.\n";
+    exit(0);
+}
+
+echo "Found " . count($dueSchedules) . " schedule(s) to run:\n";
+
+foreach ($dueSchedules as $schedule) {
+    $name = $schedule['name'];
+    $config = $schedule['config'];
+    
+    echo "\nRunning: {$name}\n";
+    echo str_repeat('-', 50) . "\n";
+    
+    try {
+        // Build command
+        $command = 'php ' . __DIR__ . '/sitemap';
+        
+        foreach ($config as $key => $value) {
+            if ($key === 'schedule') {
+                continue;
+            }
+            
+            $option = '--' . str_replace('_', '-', $key);
+            
+            if (is_bool($value)) {
+                if ($value) {
+                    $command .= " {$option}";
+                }
+            } elseif (is_array($value)) {
+                $command .= " {$option}=" . implode(',', $value);
+            } else {
+                $command .= " {$option}=" . escapeshellarg($value);
+            }
+        }
+        
+        echo "Command: {$command}\n\n";
+        
+        // Execute
+        $output = [];
+        $returnCode = 0;
+        exec($command . ' 2>&1', $output, $returnCode);
+        
+        foreach ($output as $line) {
+            echo $line . "\n";
+        }
+        
+        if ($returnCode === 0) {
+            echo "\n✅ Schedule '{$name}' completed successfully\n";
+            $scheduler->markAsRun($name);
+        } else {
+            echo "\n❌ Schedule '{$name}' failed with code {$returnCode}\n";
+        }
+        
+    } catch (\Throwable $e) {
+        echo "❌ Error running schedule '{$name}': {$e->getMessage()}\n";
+    }
+    
+    echo str_repeat('-', 50) . "\n";
+}
+
+echo "\nScheduler completed.\n";

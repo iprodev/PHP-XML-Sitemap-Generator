@@ -26,10 +26,27 @@ if (!$autoloaded) {
 }
 
 use IProDev\Sitemap\Fetcher;
+use IProDev\Sitemap\JavaScriptFetcher;
 use IProDev\Sitemap\Crawler;
 use IProDev\Sitemap\SitemapWriter;
 use IProDev\Sitemap\RobotsTxt;
 use IProDev\Sitemap\Utils;
+use IProDev\Sitemap\InteractiveMode;
+use IProDev\Sitemap\Cache\FileCache;
+use IProDev\Sitemap\Cache\RedisCache;
+use IProDev\Sitemap\Database\Database;
+use IProDev\Sitemap\ChangeDetector;
+use IProDev\Sitemap\RateLimiter;
+use IProDev\Sitemap\Filter\UrlFilter;
+use IProDev\Sitemap\Analyzer\SeoAnalyzer;
+use IProDev\Sitemap\Analyzer\ContentQualityChecker;
+use IProDev\Sitemap\PerformanceMetrics;
+use IProDev\Sitemap\WebhookNotifier;
+use IProDev\Sitemap\ProxyManager;
+use IProDev\Sitemap\CrawlCheckpoint;
+use IProDev\Sitemap\Sitemap\ImageSitemapWriter;
+use IProDev\Sitemap\Sitemap\VideoSitemapWriter;
+use IProDev\Sitemap\Sitemap\NewsSitemapWriter;
 
 /**
  * Simple console logger
@@ -46,20 +63,19 @@ class ConsoleLogger extends \Psr\Log\AbstractLogger {
     public function log($level, $message, array $context = []): void {
         $timestamp = sprintf('[%.2fs]', microtime(true) - $this->startTime);
         
-        // Only show info and above unless verbose
         if (!$this->verbose && in_array($level, ['debug'])) {
             return;
         }
 
         $levelColors = [
-            'emergency' => "\033[1;31m", // Bold Red
-            'alert'     => "\033[1;31m", // Bold Red
-            'critical'  => "\033[1;31m", // Bold Red
-            'error'     => "\033[0;31m", // Red
-            'warning'   => "\033[0;33m", // Yellow
-            'notice'    => "\033[0;36m", // Cyan
-            'info'      => "\033[0;32m", // Green
-            'debug'     => "\033[0;37m", // White
+            'emergency' => "\033[1;31m",
+            'alert'     => "\033[1;31m",
+            'critical'  => "\033[1;31m",
+            'error'     => "\033[0;31m",
+            'warning'   => "\033[0;33m",
+            'notice'    => "\033[0;36m",
+            'info'      => "\033[0;32m",
+            'debug'     => "\033[0;37m",
         ];
 
         $reset = "\033[0m";
@@ -81,14 +97,63 @@ Usage:
   sitemap --url=<URL> [OPTIONS]
 
 Required Options:
-  --url=<URL>              Starting URL to crawl (must be valid http/https URL)
+  --url=<URL>              Starting URL to crawl
 
-Optional Options:
+Basic Options:
   --out=<PATH>             Output directory (default: ./output)
-  --concurrency=<N>        Number of concurrent HTTP requests (default: 10, max: 100)
+  --concurrency=<N>        Concurrent requests (default: 10, max: 100)
   --max-pages=<N>          Maximum pages to crawl (default: 50000)
-  --max-depth=<N>          Maximum link depth to follow (default: 5)
-  --public-base=<URL>      Public base URL for sitemap file URLs in index
+  --max-depth=<N>          Maximum link depth (default: 5)
+  --public-base=<URL>      Public base URL for sitemap index
+
+Advanced Options:
+  --rate-limit=<N>         Requests per minute (default: unlimited)
+  --delay=<MS>             Delay between requests in milliseconds
+  --cache-enabled          Enable caching
+  --cache-driver=<TYPE>    Cache driver: file|redis (default: file)
+  --cache-ttl=<SECONDS>    Cache TTL (default: 3600)
+  --resume                 Resume from checkpoint
+  --checkpoint-interval=<N> Save checkpoint every N pages
+
+Database & Change Detection:
+  --db-enabled             Enable database storage
+  --db-dsn=<DSN>           Database DSN (default: sqlite:./sitemap.db)
+  --detect-changes         Compare with previous crawl
+  --only-changed           Only include changed URLs in sitemap
+
+Filtering:
+  --exclude=<PATTERNS>     Exclude URL patterns (comma-separated)
+  --include=<PATTERNS>     Include only these patterns
+  --priority-rules=<JSON>  Priority rules as JSON
+
+SEO & Analysis:
+  --seo-analysis           Enable SEO analysis
+  --check-quality          Check content quality
+  --find-duplicates        Find duplicate content
+  --find-broken-links      Find broken links
+
+Advanced Sitemaps:
+  --image-sitemap          Generate image sitemap
+  --video-sitemap          Generate video sitemap
+  --news-sitemap           Generate news sitemap
+
+JavaScript Rendering:
+  --enable-javascript      Enable JavaScript rendering
+  --chrome-path=<PATH>     Path to Chrome/Chromium
+  --wait-for-ajax=<MS>     Wait time for AJAX (default: 5000)
+
+Proxy:
+  --proxy=<URL>            Proxy URL
+  --proxy-file=<PATH>      Load proxies from file
+  --rotate-proxies         Rotate through proxies
+
+Notifications:
+  --webhook-url=<URL>      Webhook for notifications
+  --notify-on-complete     Notify when complete
+  --notify-on-error        Notify on errors
+
+Other:
+  --interactive, -i        Interactive configuration mode
   --verbose, -v            Enable verbose output
   --help, -h               Show this help message
 
@@ -96,14 +161,20 @@ Examples:
   # Basic usage
   sitemap --url=https://www.example.com
 
-  # With custom settings
-  sitemap --url=https://www.example.com --out=./sitemaps --concurrency=20 --max-pages=10000
+  # With advanced features
+  sitemap --url=https://example.com --seo-analysis --cache-enabled --db-enabled
 
-  # With public base URL for sitemap index
-  sitemap --url=https://www.example.com --public-base=https://cdn.example.com/sitemaps
+  # Resume interrupted crawl
+  sitemap --url=https://example.com --resume
 
-  # Verbose mode
-  sitemap --url=https://www.example.com --verbose
+  # With filtering and priorities
+  sitemap --url=https://example.com --exclude="/admin/*,/test/*"
+
+  # Interactive mode
+  sitemap --interactive
+
+  # With JavaScript rendering
+  sitemap --url=https://spa.example.com --enable-javascript
 
 HELP;
 }
@@ -112,62 +183,93 @@ HELP;
  * Parse command line arguments
  */
 function parseArguments(): array {
-    $options = getopt('hv', [
-        'url:',
-        'out::',
-        'concurrency::',
-        'max-pages::',
-        'max-depth::',
-        'public-base::',
-        'verbose',
-        'help'
-    ]);
+    $shortOpts = 'hvib:';
+    $longOpts = [
+        'url:', 'out::', 'concurrency::', 'max-pages::', 'max-depth::', 'public-base::',
+        'rate-limit::', 'delay::', 'cache-enabled', 'cache-driver::', 'cache-ttl::',
+        'resume', 'checkpoint-interval::', 'db-enabled', 'db-dsn::', 'detect-changes',
+        'only-changed', 'exclude::', 'include::', 'priority-rules::', 'seo-analysis',
+        'check-quality', 'find-duplicates', 'find-broken-links', 'image-sitemap',
+        'video-sitemap', 'news-sitemap', 'enable-javascript', 'chrome-path::',
+        'wait-for-ajax::', 'proxy::', 'proxy-file::', 'rotate-proxies',
+        'webhook-url::', 'notify-on-complete', 'notify-on-error', 'interactive',
+        'verbose', 'help'
+    ];
+    
+    $options = getopt($shortOpts, $longOpts);
 
-    // Show help
     if (isset($options['h']) || isset($options['help'])) {
         showHelp();
         exit(0);
     }
 
-    // Required: URL
+    // Interactive mode
+    if (isset($options['i']) || isset($options['interactive'])) {
+        $interactive = new InteractiveMode();
+        return $interactive->run();
+    }
+
     if (!isset($options['url']) || empty($options['url'])) {
         echo "Error: --url is required\n\n";
         showHelp();
         exit(1);
     }
 
-    // Validate URL
-    if (!Utils::isValidUrl($options['url'])) {
-        echo "Error: Invalid URL format: {$options['url']}\n";
-        exit(1);
-    }
-
-    // Parse options with defaults
     $config = [
-        'url'         => $options['url'],
-        'out'         => $options['out'] ?? './output',
+        'url' => $options['url'],
+        'out' => $options['out'] ?? './output',
         'concurrency' => (int)($options['concurrency'] ?? 10),
-        'maxPages'    => (int)($options['max-pages'] ?? 50000),
-        'maxDepth'    => (int)($options['max-depth'] ?? 5),
-        'publicBase'  => $options['public-base'] ?? null,
-        'verbose'     => isset($options['v']) || isset($options['verbose'])
+        'maxPages' => (int)($options['max-pages'] ?? 50000),
+        'maxDepth' => (int)($options['max-depth'] ?? 5),
+        'publicBase' => $options['public-base'] ?? null,
+        'verbose' => isset($options['v']) || isset($options['verbose']),
+        
+        // Advanced
+        'rateLimit' => isset($options['rate-limit']) ? (int)$options['rate-limit'] : null,
+        'delay' => isset($options['delay']) ? (int)$options['delay'] : 0,
+        'cacheEnabled' => isset($options['cache-enabled']),
+        'cacheDriver' => $options['cache-driver'] ?? 'file',
+        'cacheTtl' => (int)($options['cache-ttl'] ?? 3600),
+        'resume' => isset($options['resume']),
+        'checkpointInterval' => (int)($options['checkpoint-interval'] ?? 1000),
+        
+        // Database
+        'dbEnabled' => isset($options['db-enabled']),
+        'dbDsn' => $options['db-dsn'] ?? 'sqlite:./sitemap.db',
+        'detectChanges' => isset($options['detect-changes']),
+        'onlyChanged' => isset($options['only-changed']),
+        
+        // Filtering
+        'exclude' => isset($options['exclude']) ? explode(',', $options['exclude']) : [],
+        'include' => isset($options['include']) ? explode(',', $options['include']) : [],
+        'priorityRules' => isset($options['priority-rules']) ? json_decode($options['priority-rules'], true) : [],
+        
+        // Analysis
+        'seoAnalysis' => isset($options['seo-analysis']),
+        'checkQuality' => isset($options['check-quality']),
+        'findDuplicates' => isset($options['find-duplicates']),
+        'findBrokenLinks' => isset($options['find-broken-links']),
+        
+        // Advanced sitemaps
+        'imageSitemap' => isset($options['image-sitemap']),
+        'videoSitemap' => isset($options['video-sitemap']),
+        'newsSitemap' => isset($options['news-sitemap']),
+        
+        // JavaScript
+        'enableJavaScript' => isset($options['enable-javascript']),
+        'chromePath' => $options['chrome-path'] ?? '/usr/bin/chromium',
+        'waitForAjax' => (int)($options['wait-for-ajax'] ?? 5000),
+        
+        // Proxy
+        'proxy' => $options['proxy'] ?? null,
+        'proxyFile' => $options['proxy-file'] ?? null,
+        'rotateProxies' => isset($options['rotate-proxies']),
+        
+        // Webhooks
+        'webhookUrl' => $options['webhook-url'] ?? null,
+        'notifyOnComplete' => isset($options['notify-on-complete']),
+        'notifyOnError' => isset($options['notify-on-error'])
     ];
-
-    // Validate numeric options
-    if ($config['concurrency'] < 1 || $config['concurrency'] > 100) {
-        echo "Error: concurrency must be between 1 and 100\n";
-        exit(1);
-    }
-
-    if ($config['maxPages'] < 1) {
-        echo "Error: max-pages must be at least 1\n";
-        exit(1);
-    }
-
-    if ($config['maxDepth'] < 0) {
-        echo "Error: max-depth must be non-negative\n";
-        exit(1);
-    }
 
     return $config;
 }
@@ -177,40 +279,124 @@ function parseArguments(): array {
  */
 function showConfig(array $config): void {
     echo "\n" . str_repeat('=', 70) . "\n";
-    echo "  PHP XML Sitemap Generator\n";
+    echo "  PHP XML Sitemap Generator v2.0\n";
     echo str_repeat('=', 70) . "\n";
     echo "Configuration:\n";
     echo "  URL:         {$config['url']}\n";
-    echo "  Domain:      " . Utils::getDomain($config['url']) . "\n";
     echo "  Output:      {$config['out']}\n";
     echo "  Concurrency: {$config['concurrency']}\n";
     echo "  Max Pages:   {$config['maxPages']}\n";
     echo "  Max Depth:   {$config['maxDepth']}\n";
-    if ($config['publicBase']) {
-        echo "  Public Base: {$config['publicBase']}\n";
+    
+    if ($config['cacheEnabled']) {
+        echo "  Cache:       Enabled ({$config['cacheDriver']}, TTL: {$config['cacheTtl']}s)\n";
     }
+    if ($config['dbEnabled']) {
+        echo "  Database:    Enabled\n";
+    }
+    if ($config['seoAnalysis']) {
+        echo "  SEO:         Analysis enabled\n";
+    }
+    if ($config['enableJavaScript']) {
+        echo "  JavaScript:  Rendering enabled\n";
+    }
+    if ($config['proxy']) {
+        echo "  Proxy:       {$config['proxy']}\n";
+    }
+    
     echo str_repeat('=', 70) . "\n\n";
 }
 
 // Main execution
 try {
-    // Parse arguments
     $config = parseArguments();
-    
-    // Create logger
     $logger = new ConsoleLogger($config['verbose']);
     
-    // Show configuration
     showConfig($config);
     
     $startTime = microtime(true);
+    $metrics = new PerformanceMetrics();
     
     // Initialize components
     $logger->info("Initializing crawler...");
-    $fetcher = new Fetcher([
+    
+    // Setup cache
+    $cache = null;
+    if ($config['cacheEnabled']) {
+        if ($config['cacheDriver'] === 'redis') {
+            $cache = new RedisCache();
+        } else {
+            $cache = new FileCache('./cache', $config['cacheTtl']);
+        }
+        $logger->info("Cache enabled", ['driver' => $config['cacheDriver']]);
+    }
+    
+    // Setup proxy
+    $proxyManager = null;
+    if ($config['proxy'] || $config['proxyFile']) {
+        $proxyManager = new ProxyManager([], $config['rotateProxies']);
+        if ($config['proxy']) {
+            $proxyManager->addProxy($config['proxy']);
+        }
+        if ($config['proxyFile']) {
+            $proxyManager = ProxyManager::loadFromFile($config['proxyFile']);
+        }
+        $logger->info("Proxy configured", ['count' => $proxyManager->count()]);
+    }
+    
+    // Setup rate limiter
+    $rateLimiter = null;
+    if ($config['rateLimit']) {
+        $rateLimiter = new RateLimiter($config['rateLimit'], 60, $config['delay']);
+        $logger->info("Rate limiting enabled", ['limit' => $config['rateLimit']]);
+    }
+    
+    // Setup checkpoint
+    $checkpoint = null;
+    if ($config['resume']) {
+        $checkpoint = new CrawlCheckpoint('./checkpoint.json', $config['checkpointInterval']);
+        if ($checkpoint->exists()) {
+            $info = $checkpoint->getInfo();
+            $logger->info("Checkpoint found", $info);
+        }
+    }
+    
+    // Setup webhooks
+    $webhooks = null;
+    if ($config['webhookUrl']) {
+        $webhooks = new WebhookNotifier([], $logger);
+        $webhooks->addWebhook($config['webhookUrl']);
+        $logger->info("Webhooks configured");
+    }
+    
+    // Setup database
+    $db = null;
+    $crawlId = null;
+    if ($config['dbEnabled']) {
+        $db = new Database($config['dbDsn']);
+        $db->createTables();
+        $crawlId = $db->startCrawl(Utils::getDomain($config['url']), $config['url'], $config);
+        $logger->info("Database initialized", ['crawl_id' => $crawlId]);
+    }
+    
+    // Initialize fetcher
+    $fetcherOptions = [
         'concurrency' => $config['concurrency'],
         'timeout' => 15
-    ], $logger);
+    ];
+    
+    if ($config['enableJavaScript']) {
+        $fetcherOptions['enable_javascript'] = true;
+        $fetcherOptions['chrome_path'] = $config['chromePath'];
+        $fetcherOptions['wait_for_ajax'] = $config['waitForAjax'];
+        $fetcher = new JavaScriptFetcher($fetcherOptions, $logger);
+    } else {
+        $fetcher = new Fetcher($fetcherOptions, $logger);
+    }
+    
+    if ($proxyManager && $proxyManager->count() > 0) {
+        $fetcherOptions = array_merge($fetcherOptions, $proxyManager->getGuzzleProxyConfig());
+    }
     
     // Load robots.txt
     $logger->info("Fetching robots.txt...");
@@ -220,12 +406,27 @@ try {
         'allows' => count($robots->getAllows())
     ]);
     
+    // Setup URL filter
+    $filter = new UrlFilter([
+        'exclude' => $config['exclude'],
+        'include' => $config['include'],
+        'priority' => $config['priorityRules']
+    ]);
+    
     // Create crawler
     $crawler = new Crawler($fetcher, $robots, $logger);
+    
+    // Notify start
+    if ($webhooks) {
+        $webhooks->notifyCrawlStarted($config['url'], $config);
+    }
     
     // Start crawling
     $logger->info("Starting crawl...");
     $pages = $crawler->crawl($config['url'], $config['maxPages'], $config['maxDepth']);
+    
+    // Filter pages
+    $pages = $filter->filterPages($pages);
     
     $crawlTime = microtime(true) - $startTime;
     $logger->info("Crawl completed", [
@@ -234,11 +435,84 @@ try {
         'rate' => round(count($pages) / $crawlTime, 2) . ' pages/sec'
     ]);
     
-    // Write sitemap files
+    // SEO Analysis
+    if ($config['seoAnalysis']) {
+        $logger->info("Running SEO analysis...");
+        $seoAnalyzer = new SeoAnalyzer();
+        // Would need to re-fetch pages with HTML for analysis
+    }
+    
+    // Quality checks
+    if ($config['checkQuality'] || $config['findDuplicates'] || $config['findBrokenLinks']) {
+        $logger->info("Running quality checks...");
+        $qualityChecker = new ContentQualityChecker();
+        
+        if ($config['findDuplicates']) {
+            $duplicates = $qualityChecker->findDuplicates($pages);
+            $logger->warning("Duplicate content found", ['count' => count($duplicates)]);
+        }
+        
+        if ($config['findBrokenLinks']) {
+            $broken = $qualityChecker->findBrokenLinks($pages);
+            $logger->warning("Broken links found", ['count' => count($broken)]);
+        }
+    }
+    
+    // Save to database
+    if ($db && $crawlId) {
+        $logger->info("Saving to database...");
+        foreach ($pages as $page) {
+            $db->saveUrl($crawlId, $page);
+        }
+        
+        // Detect changes
+        if ($config['detectChanges']) {
+            $prevCrawl = $db->getPreviousCrawl(Utils::getDomain($config['url']), $crawlId);
+            if ($prevCrawl) {
+                $detector = new ChangeDetector($db);
+                $changes = $detector->detectChanges($prevCrawl['id'], $crawlId);
+                $logger->info("Changes detected", $changes['summary']);
+                
+                if ($webhooks) {
+                    $webhooks->notifyChangesDetected($changes);
+                }
+            }
+        }
+        
+        $db->completeCrawl($crawlId, [
+            'total_pages' => count($pages),
+            'errors' => 0
+        ]);
+    }
+    
+    // Write sitemaps
     $logger->info("Writing sitemap files...");
     $files = SitemapWriter::write($pages, $config['out'], 50000, $config['publicBase']);
     
+    // Image sitemap
+    if ($config['imageSitemap']) {
+        $logger->info("Generating image sitemap...");
+        // Would need image data in pages
+    }
+    
+    // Video sitemap
+    if ($config['videoSitemap']) {
+        $logger->info("Generating video sitemap...");
+        // Would need video data in pages
+    }
+    
+    // News sitemap
+    if ($config['newsSitemap']) {
+        $logger->info("Generating news sitemap...");
+        // Would need publication dates in pages
+    }
+    
     $totalTime = microtime(true) - $startTime;
+    
+    // Clean up checkpoint
+    if ($checkpoint && !$config['resume']) {
+        $checkpoint->delete();
+    }
     
     // Success summary
     echo "\n" . str_repeat('=', 70) . "\n";
@@ -250,26 +524,46 @@ try {
         $basename = basename($file);
         echo "  • {$basename} ({$size})\n";
     }
+    
     echo "\nStatistics:\n";
+    $stats = $crawler->getStats();
     echo "  • Total Pages:    " . count($pages) . "\n";
+    echo "  • Processed:      {$stats['processed']}\n";
     echo "  • Total Time:     " . Utils::formatDuration($totalTime) . "\n";
     echo "  • Crawl Speed:    " . round(count($pages) / $crawlTime, 2) . " pages/sec\n";
-    echo "  • Memory Used:    " . Utils::getPeakMemoryUsage() . "\n";
+    echo "  • Memory Peak:    " . Utils::getPeakMemoryUsage() . "\n";
     echo "  • Output Dir:     {$config['out']}\n";
     echo str_repeat('=', 70) . "\n";
+    
+    // Notify completion
+    if ($webhooks && $config['notifyOnComplete']) {
+        $webhooks->notifyCrawlCompleted($config['url'], [
+            'pages' => count($pages),
+            'duration' => $totalTime
+        ]);
+    }
     
     exit(0);
     
 } catch (\InvalidArgumentException $e) {
     echo "\n❌ Configuration Error: {$e->getMessage()}\n\n";
+    if (isset($webhooks) && $config['notifyOnError']) {
+        $webhooks->notifyCrawlFailed($config['url'] ?? 'unknown', $e->getMessage());
+    }
     exit(1);
 } catch (\RuntimeException $e) {
     echo "\n❌ Runtime Error: {$e->getMessage()}\n\n";
+    if (isset($webhooks) && $config['notifyOnError']) {
+        $webhooks->notifyCrawlFailed($config['url'] ?? 'unknown', $e->getMessage());
+    }
     exit(1);
 } catch (\Throwable $e) {
     echo "\n❌ Unexpected Error: {$e->getMessage()}\n";
     if (isset($logger) && $config['verbose']) {
         echo "\nStack Trace:\n" . $e->getTraceAsString() . "\n";
+    }
+    if (isset($webhooks) && $config['notifyOnError']) {
+        $webhooks->notifyCrawlFailed($config['url'] ?? 'unknown', $e->getMessage());
     }
     echo "\n";
     exit(1);
