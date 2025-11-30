@@ -129,10 +129,10 @@ jobs:
         context: .
         push: true
         tags: |
-          iprodev/sitemap-generator-pro:latest
-          iprodev/sitemap-generator-pro:${{ github.sha }}
-        cache-from: type=registry,ref=iprodev/sitemap-generator-pro:buildcache
-        cache-to: type=registry,ref=iprodev/sitemap-generator-pro:buildcache,mode=max
+          iprodev/PHP-XML-Sitemap-Generator:latest
+          iprodev/PHP-XML-Sitemap-Generator:${{ github.sha }}
+        cache-from: type=registry,ref=iprodev/PHP-XML-Sitemap-Generator:buildcache
+        cache-to: type=registry,ref=iprodev/PHP-XML-Sitemap-Generator:buildcache,mode=max
 
   release:
     name: Create Release
@@ -155,7 +155,7 @@ jobs:
       
     - name: Create release archive
       run: |
-        zip -r sitemap-generator-pro-${{ github.event.release.tag_name }}.zip . \
+        zip -r PHP-XML-Sitemap-Generator-${{ github.event.release.tag_name }}.zip . \
           -x "*.git*" "tests/*" "*.github/*" "docker-compose.yml"
         
     - name: Upload release asset
@@ -164,6 +164,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./sitemap-generator-pro-${{ github.event.release.tag_name }}.zip
-        asset_name: sitemap-generator-pro-${{ github.event.release.tag_name }}.zip
+        asset_path: ./PHP-XML-Sitemap-Generator-${{ github.event.release.tag_name }}.zip
+        asset_name: PHP-XML-Sitemap-Generator-${{ github.event.release.tag_name }}.zip
         asset_content_type: application/zip
