@@ -137,12 +137,13 @@ class UrlFilter
     {
         // Escape special regex characters except * and ?
         $pattern = preg_quote($pattern, '/');
-        
+
         // Convert glob wildcards to regex
         $pattern = str_replace('\*', '.*', $pattern);
         $pattern = str_replace('\?', '.', $pattern);
-        
-        return '/^' . $pattern . '$/';
+
+        // Don't anchor - allow pattern to match anywhere in URL
+        return '/' . $pattern . '/';
     }
 
     /**

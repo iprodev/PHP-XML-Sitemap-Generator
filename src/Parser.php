@@ -83,13 +83,41 @@ class Parser {
         return false;
     }
 
-    /** 
+    /**
      * Resolve a possibly relative URL against a base URL.
      * @throws \InvalidArgumentException
      */
     public static function resolveUrl(string $href, string $base): ?string {
         if (empty($href) || empty($base)) {
             return null;
+        }
+
+        // Skip fragment-only URLs
+        if (self::startsWith($href, '#')) {
+            return null;
+        }
+
+        // Skip non-http schemes
+        $lowercaseHref = strtolower($href);
+        $skipSchemes = ['mailto:', 'javascript:', 'tel:', 'fax:', 'data:', 'file:', 'ftp:'];
+        foreach ($skipSchemes as $scheme) {
+            if (self::startsWith($lowercaseHref, $scheme)) {
+                return null;
+            }
+        }
+
+        // Validate URL doesn't contain invalid characters in scheme
+        // Check if URL looks like it has a scheme (contains ://) but scheme part is malformed
+        if (preg_match('/^([^:\/]+):\/\//', $href, $matches)) {
+            $schemePart = $matches[1];
+            // Valid scheme must match [a-z][a-z0-9+.-]*
+            if (!preg_match('/^[a-z][a-z0-9+.-]*$/i', $schemePart)) {
+                throw new \InvalidArgumentException("Invalid URL scheme in '{$href}'");
+            }
+            // Must be http or https
+            if (!preg_match('/^https?$/i', $schemePart)) {
+                throw new \InvalidArgumentException("Invalid URL scheme in '{$href}'");
+            }
         }
 
         try {

@@ -15,11 +15,11 @@ class Utils {
      */
     public static function formatBytes(int $bytes, int $precision = 2): string {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        
-        for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
+
+        for ($i = 0; $bytes >= 1024 && $i < count($units) - 1; $i++) {
             $bytes /= 1024;
         }
-        
+
         return round($bytes, $precision) . ' ' . $units[$i];
     }
 
@@ -114,7 +114,7 @@ class Utils {
     /**
      * Clean URL by removing query parameters and fragments
      */
-    public static function cleanUrl(string $url, bool $removeQuery = false): string {
+    public static function cleanUrl(string $url, bool $removeQuery = true): string {
         $parsed = parse_url($url);
         
         if (!$parsed) {
