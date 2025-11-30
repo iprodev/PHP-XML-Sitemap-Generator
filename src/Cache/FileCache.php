@@ -58,7 +58,7 @@ class FileCache implements CacheInterface
     public function delete(string $key): bool
     {
         $file = $this->getFilePath($key);
-        
+
         if (file_exists($file)) {
             return unlink($file);
         }
@@ -69,7 +69,7 @@ class FileCache implements CacheInterface
     public function clear(): bool
     {
         $files = glob($this->cacheDir . '/*.cache');
-        
+
         foreach ($files as $file) {
             if (is_file($file)) {
                 unlink($file);
@@ -82,7 +82,7 @@ class FileCache implements CacheInterface
     public function getMultiple(array $keys): array
     {
         $result = [];
-        
+
         foreach ($keys as $key) {
             $result[$key] = $this->get($key);
         }
@@ -115,7 +115,7 @@ class FileCache implements CacheInterface
             }
 
             $data = unserialize(file_get_contents($file));
-            
+
             if ($data['expires'] < time()) {
                 unlink($file);
                 $deleted++;
@@ -142,7 +142,7 @@ class FileCache implements CacheInterface
 
             $totalSize += filesize($file);
             $data = unserialize(file_get_contents($file));
-            
+
             if ($data['expires'] < time()) {
                 $expired++;
             } else {

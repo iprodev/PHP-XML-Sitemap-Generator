@@ -1,4 +1,5 @@
 <?php
+
 namespace IProDev\Sitemap;
 
 use GuzzleHttp\Client;
@@ -8,14 +9,16 @@ use GuzzleHttp\Exception\RequestException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-class Fetcher {
+class Fetcher
+{
     private Client $client;
     private int $concurrency;
     private LoggerInterface $logger;
 
-    public function __construct(array $options = [], ?LoggerInterface $logger = null) {
+    public function __construct(array $options = [], ?LoggerInterface $logger = null)
+    {
         $this->logger = $logger ?? new NullLogger();
-        
+
         // Validate concurrency
         $concurrency = $options['concurrency'] ?? 10;
         if ($concurrency < 1 || $concurrency > 100) {
@@ -47,12 +50,12 @@ class Fetcher {
 
         // Merge user options with defaults
         $mergedOptions = array_merge($defaults, $options);
-        
+
         // Preserve concurrency in merged options
         $mergedOptions['concurrency'] = $this->concurrency;
 
         $this->client = new Client($mergedOptions);
-        
+
         $this->logger->info("Fetcher initialized", [
             'concurrency' => $this->concurrency,
             'timeout' => $mergedOptions['timeout']
@@ -65,7 +68,8 @@ class Fetcher {
      * @param callable $onFulfilled function(\Psr\Http\Message\ResponseInterface $response, int $index)
      * @param callable|null $onRejected function($reason, int $index)
      */
-    public function fetchMany(array $urls, callable $onFulfilled, ?callable $onRejected = null): void {
+    public function fetchMany(array $urls, callable $onFulfilled, ?callable $onRejected = null): void
+    {
         if (empty($urls)) {
             $this->logger->debug("No URLs to fetch");
             return;
@@ -86,13 +90,13 @@ class Fetcher {
             return;
         }
 
-        $requests = function($urls) {
+        $requests = function ($urls) {
             foreach ($urls as $u) {
                 yield new Request('GET', $u);
             }
         };
 
-        $defaultRejected = function($reason, $idx) use ($urls) {
+        $defaultRejected = function ($reason, $idx) use ($urls) {
             $url = $urls[$idx] ?? 'unknown';
             $message = $reason instanceof \Exception ? $reason->getMessage() : (string)$reason;
             $this->logger->warning("Request failed for {$url}", ['reason' => $message]);
@@ -101,7 +105,7 @@ class Fetcher {
         try {
             $pool = new Pool($this->client, $requests($validUrls), [
                 'concurrency' => $this->concurrency,
-                'fulfilled'   => function($response, $idx) use ($onFulfilled, $validUrls) {
+                'fulfilled'   => function ($response, $idx) use ($onFulfilled, $validUrls) {
                     $url = $validUrls[$idx] ?? 'unknown';
                     $this->logger->debug("Successfully fetched {$url}", [
                         'status' => $response->getStatusCode()
@@ -113,7 +117,7 @@ class Fetcher {
 
             $promise = $pool->promise();
             $promise->wait();
-            
+
             $this->logger->debug("Batch fetch completed", ['count' => count($validUrls)]);
         } catch (\Throwable $e) {
             $this->logger->error("Pool execution failed", [
@@ -127,7 +131,8 @@ class Fetcher {
     /**
      * Fetch a single URL
      */
-    public function get(string $url) {
+    public function get(string $url)
+    {
         if (!$this->isValidUrl($url)) {
             throw new \InvalidArgumentException("Invalid URL: {$url}");
         }
@@ -148,7 +153,8 @@ class Fetcher {
     /**
      * Validate URL format and scheme
      */
-    private function isValidUrl(string $url): bool {
+    private function isValidUrl(string $url): bool
+    {
         if (empty($url)) {
             return false;
         }
@@ -169,7 +175,8 @@ class Fetcher {
     /**
      * Get concurrency setting
      */
-    public function getConcurrency(): int {
+    public function getConcurrency(): int
+    {
         return $this->concurrency;
     }
 }

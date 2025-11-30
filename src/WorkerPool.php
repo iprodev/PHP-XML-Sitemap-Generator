@@ -38,11 +38,11 @@ class WorkerPool
     {
         $this->running = true;
         $results = [];
-        
+
         $this->logger->info("Starting worker pool with {$this->workerCount} workers");
-        
+
         $chunks = array_chunk($this->queue, ceil(count($this->queue) / $this->workerCount));
-        
+
         foreach ($chunks as $i => $chunk) {
             $this->workers[$i] = [
                 'id' => $i,

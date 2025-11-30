@@ -35,7 +35,7 @@ class RedisCache implements CacheInterface
     public function get(string $key): mixed
     {
         $value = $this->redis->get($this->prefix . $key);
-        
+
         if ($value === false) {
             return null;
         }
@@ -67,7 +67,7 @@ class RedisCache implements CacheInterface
     {
         $pattern = $this->prefix . '*';
         $keys = $this->redis->keys($pattern);
-        
+
         if (empty($keys)) {
             return true;
         }
@@ -79,7 +79,7 @@ class RedisCache implements CacheInterface
     {
         $prefixedKeys = array_map(fn($k) => $this->prefix . $k, $keys);
         $values = $this->redis->mGet($prefixedKeys);
-        
+
         $result = [];
         foreach ($keys as $i => $key) {
             $result[$key] = $values[$i] !== false ? unserialize($values[$i]) : null;

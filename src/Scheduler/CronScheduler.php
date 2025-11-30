@@ -27,7 +27,7 @@ class CronScheduler
             'enabled' => true,
             'created_at' => date('Y-m-d H:i:s')
         ];
-        
+
         $this->saveSchedules();
     }
 
@@ -62,18 +62,18 @@ class CronScheduler
     {
         $due = [];
         $now = time();
-        
+
         foreach ($this->schedules as $name => $schedule) {
             if (!$schedule['enabled']) {
                 continue;
             }
-            
+
             $nextRun = strtotime($schedule['next_run']);
             if ($nextRun <= $now) {
                 $due[] = $schedule;
             }
         }
-        
+
         return $due;
     }
 
@@ -105,24 +105,24 @@ class CronScheduler
     private function calculateNextRun(string $expression): string
     {
         $now = time();
-        
+
         switch ($expression) {
             case 'hourly':
                 $next = strtotime('+1 hour', $now);
                 break;
-            
+
             case 'daily':
                 $next = strtotime('tomorrow 00:00', $now);
                 break;
-            
+
             case 'weekly':
                 $next = strtotime('next monday 00:00', $now);
                 break;
-            
+
             case 'monthly':
                 $next = strtotime('first day of next month 00:00', $now);
                 break;
-            
+
             default:
                 // Try to parse as cron expression (simplified)
                 $next = $this->parseCronExpression($expression);
@@ -130,7 +130,7 @@ class CronScheduler
                     $next = strtotime('+1 day', $now);
                 }
         }
-        
+
         return date('Y-m-d H:i:s', $next);
     }
 
@@ -145,20 +145,22 @@ class CronScheduler
         if (count($parts) !== 5) {
             return null;
         }
-        
+
         list($minute, $hour, $day, $month, $weekday) = $parts;
-        
+
         $now = time();
         $currentHour = (int)date('H', $now);
         $currentMinute = (int)date('i', $now);
-        
+
         // Simple case: specific time each day (e.g., "0 2 * * *")
         if ($day === '*' && $month === '*' && $weekday === '*') {
             $targetHour = (int)$hour;
             $targetMinute = (int)$minute;
-            
-            if ($targetHour > $currentHour || 
-                ($targetHour === $currentHour && $targetMinute > $currentMinute)) {
+
+            if (
+                $targetHour > $currentHour ||
+                ($targetHour === $currentHour && $targetMinute > $currentMinute)
+            ) {
                 // Today
                 return strtotime(sprintf('%02d:%02d:00', $targetHour, $targetMinute));
             } else {
@@ -166,7 +168,7 @@ class CronScheduler
                 return strtotime(sprintf('tomorrow %02d:%02d:00', $targetHour, $targetMinute));
             }
         }
-        
+
         // For more complex expressions, use next day as fallback
         return strtotime('+1 day', $now);
     }
@@ -191,7 +193,7 @@ class CronScheduler
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
-        
+
         file_put_contents(
             $this->scheduleFile,
             json_encode($this->schedules, JSON_PRETTY_PRINT)

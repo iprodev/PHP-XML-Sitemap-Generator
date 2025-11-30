@@ -34,7 +34,7 @@ class ChangeDetector
         $new = count($this->db->getNewUrls($oldCrawlId, $newCrawlId));
         $modified = count($this->db->getChangedUrls($oldCrawlId, $newCrawlId));
         $deleted = count($this->db->getDeletedUrls($oldCrawlId, $newCrawlId));
-        
+
         return [
             'new_count' => $new,
             'modified_count' => $modified,
@@ -49,14 +49,14 @@ class ChangeDetector
     public function generateReport(int $oldCrawlId, int $newCrawlId, string $format = 'text'): string
     {
         $changes = $this->detectChanges($oldCrawlId, $newCrawlId);
-        
+
         switch ($format) {
             case 'json':
                 return json_encode($changes, JSON_PRETTY_PRINT);
-            
+
             case 'html':
                 return $this->generateHtmlReport($changes);
-            
+
             default:
                 return $this->generateTextReport($changes);
         }
@@ -69,14 +69,14 @@ class ChangeDetector
     {
         $report = "SITEMAP CHANGE DETECTION REPORT\n";
         $report .= str_repeat('=', 70) . "\n\n";
-        
+
         $report .= "SUMMARY\n";
         $report .= str_repeat('-', 70) . "\n";
         $report .= sprintf("New URLs:      %d\n", $changes['summary']['new_count']);
         $report .= sprintf("Modified URLs: %d\n", $changes['summary']['modified_count']);
         $report .= sprintf("Deleted URLs:  %d\n", $changes['summary']['deleted_count']);
         $report .= sprintf("Total Changes: %d\n\n", $changes['summary']['total_changes']);
-        
+
         if (!empty($changes['new'])) {
             $report .= "NEW URLs\n";
             $report .= str_repeat('-', 70) . "\n";
@@ -85,7 +85,7 @@ class ChangeDetector
             }
             $report .= "\n";
         }
-        
+
         if (!empty($changes['modified'])) {
             $report .= "MODIFIED URLs\n";
             $report .= str_repeat('-', 70) . "\n";
@@ -94,7 +94,7 @@ class ChangeDetector
             }
             $report .= "\n";
         }
-        
+
         if (!empty($changes['deleted'])) {
             $report .= "DELETED URLs\n";
             $report .= str_repeat('-', 70) . "\n";
@@ -103,7 +103,7 @@ class ChangeDetector
             }
             $report .= "\n";
         }
-        
+
         return $report;
     }
 
@@ -144,7 +144,7 @@ class ChangeDetector
     
     <div class="changes">
 HTML;
-        
+
         if (!empty($changes['new'])) {
             $html .= '<div class="change-section"><h2>New URLs</h2><ul class="url-list">';
             foreach ($changes['new'] as $url) {
@@ -152,7 +152,7 @@ HTML;
             }
             $html .= '</ul></div>';
         }
-        
+
         if (!empty($changes['modified'])) {
             $html .= '<div class="change-section"><h2>Modified URLs</h2><ul class="url-list">';
             foreach ($changes['modified'] as $url) {
@@ -160,7 +160,7 @@ HTML;
             }
             $html .= '</ul></div>';
         }
-        
+
         if (!empty($changes['deleted'])) {
             $html .= '<div class="change-section"><h2>Deleted URLs</h2><ul class="url-list">';
             foreach ($changes['deleted'] as $url) {
@@ -168,9 +168,9 @@ HTML;
             }
             $html .= '</ul></div>';
         }
-        
+
         $html .= '</div></body></html>';
-        
+
         return $html;
     }
 
@@ -183,10 +183,10 @@ HTML;
         $content = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $content);
         $content = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $content);
         $content = preg_replace('/<!--.*?-->/s', '', $content);
-        
+
         // Normalize whitespace
         $content = preg_replace('/\s+/', ' ', $content);
-        
+
         return hash('sha256', trim($content));
     }
 }

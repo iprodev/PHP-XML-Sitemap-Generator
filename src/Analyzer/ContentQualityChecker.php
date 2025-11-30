@@ -14,7 +14,7 @@ class ContentQualityChecker
 
         foreach ($pages as $page) {
             $hash = $page['content_hash'] ?? null;
-            
+
             if (!$hash) {
                 continue;
             }
@@ -215,7 +215,7 @@ class ContentQualityChecker
         $issues += count($this->findNoindexPages($pages));
 
         $score = 100 - (($issues / $total) * 50);
-        
+
         return max(0, min(100, (int)$score));
     }
 
@@ -244,11 +244,11 @@ class ContentQualityChecker
     private function formatBytes(int $bytes): string
     {
         $units = ['B', 'KB', 'MB', 'GB'];
-        
+
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
             $bytes /= 1024;
         }
-        
+
         return round($bytes, 2) . ' ' . $units[$i];
     }
 }

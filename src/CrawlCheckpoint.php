@@ -21,7 +21,7 @@ class CrawlCheckpoint
     {
         $state['saved_at'] = date('Y-m-d H:i:s');
         $state['timestamp'] = time();
-        
+
         $dir = dirname($this->checkpointFile);
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);

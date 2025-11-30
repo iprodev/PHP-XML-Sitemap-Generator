@@ -94,7 +94,7 @@ class Database
             (domain, start_url, started_at, config, status) 
             VALUES (?, ?, datetime('now'), ?, 'running')"
         );
-        
+
         $stmt->execute([$domain, $startUrl, json_encode($config)]);
         return (int)$this->pdo->lastInsertId();
     }
@@ -115,7 +115,7 @@ class Database
             errors = ?
             WHERE id = ?"
         );
-        
+
         $stmt->execute([
             $stats['total_pages'] ?? 0,
             $stats['new_pages'] ?? 0,
@@ -132,9 +132,9 @@ class Database
     public function saveUrl(int $crawlId, array $data): void
     {
         $existing = $this->getUrlByCrawlAndUrl($crawlId, $data['url']);
-        
+
         $now = date('Y-m-d H:i:s');
-        
+
         if ($existing) {
             // Update
             $stmt = $this->pdo->prepare(
@@ -159,7 +159,7 @@ class Database
                 updated_at = ?
                 WHERE id = ?"
             );
-            
+
             $stmt->execute([
                 $data['status_code'] ?? null,
                 $data['last_modified'] ?? null,
@@ -190,7 +190,7 @@ class Database
                 first_seen, last_seen, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             );
-            
+
             $stmt->execute([
                 $crawlId,
                 $data['url'],
@@ -227,7 +227,7 @@ class Database
         );
         $stmt->execute([$crawlId, $url]);
         $result = $stmt->fetch();
-        
+
         return $result ?: null;
     }
 
@@ -238,20 +238,20 @@ class Database
     {
         $sql = "SELECT * FROM {$this->crawlTable} 
                 WHERE domain = ? AND status = 'completed'";
-        
+
         $params = [$domain];
-        
+
         if ($excludeCrawlId) {
             $sql .= " AND id != ?";
             $params[] = $excludeCrawlId;
         }
-        
+
         $sql .= " ORDER BY completed_at DESC LIMIT 1";
-        
+
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
         $result = $stmt->fetch();
-        
+
         return $result ?: null;
     }
 
@@ -264,7 +264,7 @@ class Database
             "SELECT * FROM {$this->table} WHERE crawl_id = ? ORDER BY url"
         );
         $stmt->execute([$crawlId]);
-        
+
         return $stmt->fetchAll();
     }
 
@@ -284,10 +284,10 @@ class Database
             INNER JOIN {$this->table} o ON n.url = o.url
             WHERE n.crawl_id = ? AND o.crawl_id = ?
             AND (n.content_hash != o.content_hash OR n.last_modified != o.last_modified)";
-        
+
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$newCrawlId, $oldCrawlId]);
-        
+
         return $stmt->fetchAll();
     }
 
@@ -299,10 +299,10 @@ class Database
         $sql = "SELECT n.* FROM {$this->table} n
             LEFT JOIN {$this->table} o ON n.url = o.url AND o.crawl_id = ?
             WHERE n.crawl_id = ? AND o.id IS NULL";
-        
+
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$oldCrawlId, $newCrawlId]);
-        
+
         return $stmt->fetchAll();
     }
 
@@ -314,10 +314,10 @@ class Database
         $sql = "SELECT o.* FROM {$this->table} o
             LEFT JOIN {$this->table} n ON o.url = n.url AND n.crawl_id = ?
             WHERE o.crawl_id = ? AND n.id IS NULL";
-        
+
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$newCrawlId, $oldCrawlId]);
-        
+
         return $stmt->fetchAll();
     }
 
@@ -338,7 +338,7 @@ class Database
             FROM {$this->table}
             WHERE crawl_id = ?"
         );
-        
+
         $stmt->execute([$crawlId]);
         return $stmt->fetch();
     }

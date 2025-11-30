@@ -139,15 +139,15 @@ class WebhookNotifier
     {
         try {
             $start = microtime(true);
-            
+
             $this->sendWebhook($url, [
                 'event' => 'test',
                 'message' => 'This is a test webhook',
                 'timestamp' => date('c')
             ]);
-            
+
             $duration = microtime(true) - $start;
-            
+
             return [
                 'success' => true,
                 'duration' => round($duration, 3),

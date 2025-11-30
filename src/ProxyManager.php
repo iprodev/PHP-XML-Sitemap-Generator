@@ -21,7 +21,7 @@ class ProxyManager
     public function setProxies(array $proxies): void
     {
         $this->proxies = [];
-        
+
         foreach ($proxies as $proxy) {
             if (is_string($proxy)) {
                 $this->proxies[] = ['url' => $proxy, 'auth' => null];
@@ -79,7 +79,7 @@ class ProxyManager
     public function getGuzzleProxyConfig(): ?array
     {
         $proxy = $this->getProxy();
-        
+
         if (!$proxy) {
             return null;
         }
@@ -130,7 +130,7 @@ class ProxyManager
         foreach ($this->proxies as $proxy) {
             $stats = $this->stats[$proxy['url']];
             $total = $stats['successes'] + $stats['failures'];
-            
+
             if ($total === 0) {
                 continue;
             }
@@ -157,7 +157,7 @@ class ProxyManager
         foreach ($this->proxies as $proxy) {
             $stats = $this->stats[$proxy['url']];
             $total = $stats['successes'] + $stats['failures'];
-            
+
             if ($total === 0) {
                 $keep[] = $proxy;
                 continue;
@@ -200,16 +200,16 @@ class ProxyManager
     public function testProxy(string $proxyUrl, string $testUrl = 'https://www.google.com'): array
     {
         $client = new \GuzzleHttp\Client();
-        
+
         try {
             $start = microtime(true);
-            
+
             $response = $client->get($testUrl, [
                 'proxy' => $proxyUrl,
                 'timeout' => 10,
                 'allow_redirects' => true
             ]);
-            
+
             $duration = microtime(true) - $start;
 
             return [
@@ -271,7 +271,7 @@ class ProxyManager
 
         foreach ($lines as $line) {
             $line = trim($line);
-            
+
             // Skip comments
             if (strpos($line, '#') === 0) {
                 continue;

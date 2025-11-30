@@ -26,7 +26,7 @@ class ImageSitemapWriter
             $xml->setIndent(true);
             $xml->setIndentString('  ');
             $xml->startDocument('1.0', 'UTF-8');
-            
+
             $xml->startElement('urlset');
             $xml->writeAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
             $xml->writeAttribute('xmlns:image', 'http://www.google.com/schemas/sitemap-image/1.1');
@@ -38,28 +38,28 @@ class ImageSitemapWriter
 
                 $xml->startElement('url');
                 $xml->writeElement('loc', htmlspecialchars($page['url'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
-                
+
                 foreach ($page['images'] as $image) {
                     $xml->startElement('image:image');
                     $xml->writeElement('image:loc', htmlspecialchars($image['url'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
-                    
+
                     if (!empty($image['title'])) {
                         $xml->writeElement('image:title', htmlspecialchars($image['title'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
                     }
-                    
+
                     if (!empty($image['caption'])) {
                         $xml->writeElement('image:caption', htmlspecialchars($image['caption'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
                     }
-                    
+
                     $xml->endElement(); // image:image
                 }
-                
+
                 $xml->endElement(); // url
             }
 
             $xml->endElement(); // urlset
             $xml->endDocument();
-            
+
             $content = $xml->outputMemory();
             file_put_contents($filepath, $content);
 
@@ -82,7 +82,7 @@ class ImageSitemapWriter
     {
         $images = [];
         $dom = new \DOMDocument();
-        
+
         $previousValue = libxml_use_internal_errors(true);
         $html = mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8');
         $dom->loadHTML($html, LIBXML_NOWARNING | LIBXML_NOERROR);
@@ -90,7 +90,7 @@ class ImageSitemapWriter
         libxml_use_internal_errors($previousValue);
 
         $imgTags = $dom->getElementsByTagName('img');
-        
+
         foreach ($imgTags as $img) {
             $src = $img->getAttribute('src');
             if (empty($src)) {
@@ -136,7 +136,7 @@ class ImageSitemapWriter
 
         $path = $baseParts['path'] ?? '/';
         $path = dirname($path);
-        
+
         return $scheme . '://' . $host . rtrim($path, '/') . '/' . $href;
     }
 }

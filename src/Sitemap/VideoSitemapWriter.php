@@ -25,7 +25,7 @@ class VideoSitemapWriter
             $xml->setIndent(true);
             $xml->setIndentString('  ');
             $xml->startDocument('1.0', 'UTF-8');
-            
+
             $xml->startElement('urlset');
             $xml->writeAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
             $xml->writeAttribute('xmlns:video', 'http://www.google.com/schemas/sitemap-video/1.1');
@@ -37,56 +37,56 @@ class VideoSitemapWriter
 
                 $xml->startElement('url');
                 $xml->writeElement('loc', htmlspecialchars($page['url'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
-                
+
                 foreach ($page['videos'] as $video) {
                     $xml->startElement('video:video');
-                    
+
                     // Required fields
                     $xml->writeElement('video:thumbnail_loc', htmlspecialchars($video['thumbnail'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
                     $xml->writeElement('video:title', htmlspecialchars($video['title'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
                     $xml->writeElement('video:description', htmlspecialchars($video['description'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
-                    
+
                     // Optional: content location
                     if (!empty($video['content_url'])) {
                         $xml->writeElement('video:content_loc', htmlspecialchars($video['content_url'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
                     }
-                    
+
                     // Optional: player location
                     if (!empty($video['player_url'])) {
                         $xml->writeElement('video:player_loc', htmlspecialchars($video['player_url'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
                     }
-                    
+
                     // Optional: duration (seconds)
                     if (!empty($video['duration'])) {
                         $xml->writeElement('video:duration', (string)$video['duration']);
                     }
-                    
+
                     // Optional: publication date
                     if (!empty($video['publication_date'])) {
                         $xml->writeElement('video:publication_date', $video['publication_date']);
                     }
-                    
+
                     // Optional: family friendly
                     if (isset($video['family_friendly'])) {
                         $xml->writeElement('video:family_friendly', $video['family_friendly'] ? 'yes' : 'no');
                     }
-                    
+
                     // Optional: tags
                     if (!empty($video['tags'])) {
                         foreach ($video['tags'] as $tag) {
                             $xml->writeElement('video:tag', htmlspecialchars($tag, ENT_XML1 | ENT_QUOTES, 'UTF-8'));
                         }
                     }
-                    
+
                     $xml->endElement(); // video:video
                 }
-                
+
                 $xml->endElement(); // url
             }
 
             $xml->endElement(); // urlset
             $xml->endDocument();
-            
+
             $content = $xml->outputMemory();
             file_put_contents($filepath, $content);
 
@@ -108,7 +108,7 @@ class VideoSitemapWriter
     public static function extractVideos(string $html, string $baseUrl): array
     {
         $videos = [];
-        
+
         // YouTube embeds
         if (preg_match_all('#youtube\.com/embed/([a-zA-Z0-9_-]+)#', $html, $matches)) {
             foreach ($matches[1] as $videoId) {
@@ -122,7 +122,7 @@ class VideoSitemapWriter
                 ];
             }
         }
-        
+
         // Vimeo embeds
         if (preg_match_all('#vimeo\.com/video/([0-9]+)#', $html, $matches)) {
             foreach ($matches[1] as $videoId) {
@@ -136,7 +136,7 @@ class VideoSitemapWriter
                 ];
             }
         }
-        
+
         // HTML5 video tags
         $dom = new \DOMDocument();
         $previousValue = libxml_use_internal_errors(true);
@@ -149,7 +149,7 @@ class VideoSitemapWriter
         foreach ($videoTags as $video) {
             $poster = $video->getAttribute('poster');
             $sources = $video->getElementsByTagName('source');
-            
+
             if ($sources->length > 0) {
                 $src = $sources->item(0)->getAttribute('src');
                 if ($src) {
@@ -191,7 +191,7 @@ class VideoSitemapWriter
 
         $path = $baseParts['path'] ?? '/';
         $path = dirname($path);
-        
+
         return $scheme . '://' . $host . rtrim($path, '/') . '/' . $href;
     }
 }

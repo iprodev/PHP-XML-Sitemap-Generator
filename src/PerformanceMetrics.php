@@ -123,11 +123,11 @@ class PerformanceMetrics
     private function getStatusCodeDistribution(array $requests): array
     {
         $distribution = [];
-        
+
         foreach ($requests as $request) {
             $code = $request['status_code'];
             $category = $this->getStatusCodeCategory($code);
-            
+
             if (!isset($distribution[$category])) {
                 $distribution[$category] = 0;
             }
@@ -143,7 +143,7 @@ class PerformanceMetrics
     private function getContentSizeStats(array $requests): array
     {
         $sizes = array_filter(array_column($requests, 'size'));
-        
+
         if (empty($sizes)) {
             return [];
         }
@@ -166,7 +166,7 @@ class PerformanceMetrics
     private function getErrorsByType(array $errors): array
     {
         $byType = [];
-        
+
         foreach ($errors as $error) {
             $type = $error['type'];
             if (!isset($byType[$type])) {
@@ -260,10 +260,10 @@ class PerformanceMetrics
     public function exportToCsv(string $filename): void
     {
         $fp = fopen($filename, 'w');
-        
+
         // Headers
         fputcsv($fp, ['URL', 'Status Code', 'Duration (s)', 'Size (bytes)', 'Timestamp']);
-        
+
         // Data
         foreach ($this->metrics['requests'] as $request) {
             fputcsv($fp, [
@@ -274,7 +274,7 @@ class PerformanceMetrics
                 date('Y-m-d H:i:s', (int)$request['timestamp'])
             ]);
         }
-        
+
         fclose($fp);
     }
 }

@@ -1,11 +1,13 @@
 <?php
+
 namespace IProDev\Sitemap;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-class Crawler {
+class Crawler
+{
     private Fetcher $fetcher;
     private RobotsTxt $robots;
     private LoggerInterface $logger;
@@ -16,7 +18,8 @@ class Crawler {
     private array $queue = [];
     private int $processed = 0;
 
-    public function __construct(Fetcher $fetcher, RobotsTxt $robots, ?LoggerInterface $logger = null) {
+    public function __construct(Fetcher $fetcher, RobotsTxt $robots, ?LoggerInterface $logger = null)
+    {
         $this->fetcher = $fetcher;
         $this->robots = $robots;
         $this->logger = $logger ?? new NullLogger();
@@ -26,7 +29,8 @@ class Crawler {
      * Crawl starting from $startUrl up to $maxPages and $maxDepth within same host.
      * @return array<int,array{url:string,status:int,lastmod:?string}>
      */
-    public function crawl(string $startUrl, int $maxPages = 10000, int $maxDepth = 5): array {
+    public function crawl(string $startUrl, int $maxPages = 10000, int $maxDepth = 5): array
+    {
         // Validate inputs
         if ($maxPages < 1) {
             throw new \InvalidArgumentException('maxPages must be at least 1');
@@ -61,10 +65,10 @@ class Crawler {
             try {
                 $this->fetcher->fetchMany(
                     $urls,
-                    function(ResponseInterface $response, int $idx) use ($batch, $maxDepth, $maxPages) {
+                    function (ResponseInterface $response, int $idx) use ($batch, $maxDepth, $maxPages) {
                         $this->handleResponse($response, $batch[$idx], $maxDepth, $maxPages);
                     },
-                    function($reason, int $idx) use ($batch) {
+                    function ($reason, int $idx) use ($batch) {
                         $url = $batch[$idx]['url'];
                         $this->logger->warning("Failed to fetch {$url}", ['reason' => (string)$reason]);
                     }
@@ -84,11 +88,12 @@ class Crawler {
         return array_values($this->seen);
     }
 
-    private function handleResponse(ResponseInterface $response, array $item, int $maxDepth, int $maxPages): void {
+    private function handleResponse(ResponseInterface $response, array $item, int $maxDepth, int $maxPages): void
+    {
         $url = $item['url'];
         $depth = $item['depth'];
         $status = $response->getStatusCode();
-        
+
         $this->processed++;
 
         // Skip error responses
@@ -99,11 +104,11 @@ class Crawler {
 
         $ctype = $response->getHeaderLine('Content-Type');
         $body = (string)$response->getBody();
-        
+
         // Track page with lastmod
         $lastmod = $this->extractLastModified($response);
         $canonical = Parser::getCanonical($body, $url) ?? $url;
-        
+
         // Avoid duplicates
         if (isset($this->seen[$canonical])) {
             $this->logger->debug("Already seen canonical URL: {$canonical}");
@@ -122,7 +127,8 @@ class Crawler {
         }
     }
 
-    private function extractLastModified(ResponseInterface $response): ?string {
+    private function extractLastModified(ResponseInterface $response): ?string
+    {
         if (!$response->hasHeader('Last-Modified')) {
             return null;
         }
@@ -136,12 +142,14 @@ class Crawler {
         }
     }
 
-    private function isHtmlContent(string $contentType): bool {
-        return stripos($contentType, 'text/html') !== false || 
+    private function isHtmlContent(string $contentType): bool
+    {
+        return stripos($contentType, 'text/html') !== false ||
                stripos($contentType, 'application/xhtml+xml') !== false;
     }
 
-    private function extractAndQueueLinks(string $body, string $baseUrl, int $currentDepth, int $maxPages): void {
+    private function extractAndQueueLinks(string $body, string $baseUrl, int $currentDepth, int $maxPages): void
+    {
         try {
             $links = Parser::extractLinks($body, $baseUrl);
             $addedCount = 0;
@@ -161,7 +169,8 @@ class Crawler {
         }
     }
 
-    private function shouldQueueLink(string $link, int $maxPages): bool {
+    private function shouldQueueLink(string $link, int $maxPages): bool
+    {
         // Check host
         $linkHost = parse_url($link, PHP_URL_HOST);
         if ($linkHost !== $this->host) {
@@ -191,7 +200,8 @@ class Crawler {
         return true;
     }
 
-    private function inQueue(string $url): bool {
+    private function inQueue(string $url): bool
+    {
         foreach ($this->queue as $q) {
             if ($q['url'] === $url) {
                 return true;
@@ -200,7 +210,8 @@ class Crawler {
         return false;
     }
 
-    public function getStats(): array {
+    public function getStats(): array
+    {
         return [
             'processed' => $this->processed,
             'unique_urls' => count($this->seen),

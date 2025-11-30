@@ -20,7 +20,7 @@ class InteractiveMode
         echo "Press Enter to use default values shown in brackets.\n\n";
 
         // URL
-        $this->config['url'] = $this->ask('Starting URL', null, true, function($value) {
+        $this->config['url'] = $this->ask('Starting URL', null, true, function ($value) {
             return filter_var($value, FILTER_VALIDATE_URL) !== false;
         }, 'Please enter a valid URL');
 
@@ -29,10 +29,10 @@ class InteractiveMode
 
         // Concurrency
         $this->config['concurrency'] = (int)$this->ask(
-            'Concurrent requests (1-100)', 
+            'Concurrent requests (1-100)',
             '10',
             false,
-            function($value) {
+            function ($value) {
                 return is_numeric($value) && $value >= 1 && $value <= 100;
             },
             'Please enter a number between 1 and 100'
@@ -43,7 +43,7 @@ class InteractiveMode
             'Maximum pages to crawl',
             '10000',
             false,
-            function($value) {
+            function ($value) {
                 return is_numeric($value) && $value > 0;
             },
             'Please enter a positive number'
@@ -54,7 +54,7 @@ class InteractiveMode
             'Maximum link depth',
             '5',
             false,
-            function($value) {
+            function ($value) {
                 return is_numeric($value) && $value >= 0;
             },
             'Please enter a non-negative number'
@@ -183,8 +183,8 @@ class InteractiveMode
      * Ask question with validation
      */
     private function ask(
-        string $question, 
-        ?string $default = null, 
+        string $question,
+        ?string $default = null,
         bool $required = false,
         ?callable $validator = null,
         ?string $errorMessage = null
@@ -223,7 +223,7 @@ class InteractiveMode
     {
         $defaultStr = $default ? 'Y/n' : 'y/N';
         echo "{$question} [{$defaultStr}]: ";
-        
+
         $answer = strtolower(trim(fgets(STDIN)));
 
         if (empty($answer)) {

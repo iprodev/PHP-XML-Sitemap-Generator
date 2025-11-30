@@ -28,7 +28,7 @@ class RateLimiter
     public function throttle(string $domain = 'default'): void
     {
         $this->cleanOldRequests($domain);
-        
+
         // Check if we've hit the limit
         if ($this->isLimitReached($domain)) {
             $waitTime = $this->calculateWaitTime($domain);
@@ -37,12 +37,12 @@ class RateLimiter
                 $this->cleanOldRequests($domain);
             }
         }
-        
+
         // Add delay between requests if configured
         if ($this->delayMs > 0) {
             usleep($this->delayMs * 1000);
         }
-        
+
         $this->recordRequest($domain);
     }
 
@@ -64,7 +64,7 @@ class RateLimiter
         if (!isset($this->requests[$domain])) {
             $this->requests[$domain] = [];
         }
-        
+
         $this->requests[$domain][] = microtime(true);
     }
 
@@ -76,10 +76,10 @@ class RateLimiter
         if (!isset($this->requests[$domain])) {
             return;
         }
-        
+
         $now = microtime(true);
         $cutoff = $now - $this->timeWindow;
-        
+
         $this->requests[$domain] = array_filter(
             $this->requests[$domain],
             fn($time) => $time > $cutoff
@@ -94,7 +94,7 @@ class RateLimiter
         if (!isset($this->requests[$domain])) {
             return false;
         }
-        
+
         return count($this->requests[$domain]) >= $this->maxRequests;
     }
 
@@ -106,15 +106,15 @@ class RateLimiter
         if (!isset($this->requests[$domain]) || empty($this->requests[$domain])) {
             return 0;
         }
-        
+
         $oldestRequest = min($this->requests[$domain]);
         $now = microtime(true);
         $elapsed = $now - $oldestRequest;
-        
+
         if ($elapsed >= $this->timeWindow) {
             return 0;
         }
-        
+
         return (int)(($this->timeWindow - $elapsed) * 1000);
     }
 
@@ -133,7 +133,7 @@ class RateLimiter
     public function getStats(): array
     {
         $stats = [];
-        
+
         foreach ($this->requests as $domain => $requests) {
             $this->cleanOldRequests($domain);
             $stats[$domain] = [
@@ -143,7 +143,7 @@ class RateLimiter
                 'percentage' => round((count($requests) / $this->maxRequests) * 100, 2)
             ];
         }
-        
+
         return $stats;
     }
 

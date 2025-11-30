@@ -55,7 +55,7 @@ class UrlFilter
                     break;
                 }
             }
-            
+
             if (!$included) {
                 return false;
             }
@@ -102,7 +102,7 @@ class UrlFilter
 
         foreach ($pages as $page) {
             $url = $page['url'] ?? null;
-            
+
             if (!$url || !$this->shouldCrawl($url)) {
                 continue;
             }
@@ -126,7 +126,7 @@ class UrlFilter
 
         // Convert glob-style pattern to regex
         $regex = $this->globToRegex($pattern);
-        
+
         return preg_match($regex, $url) === 1;
     }
 

@@ -13,9 +13,9 @@ class JavaScriptFetcher extends Fetcher
     public function __construct(array $options = [], ?\Psr\Log\LoggerInterface $logger = null)
     {
         parent::__construct($options, $logger);
-        
+
         $this->enableJavaScript = $options['enable_javascript'] ?? false;
-        
+
         if ($this->enableJavaScript) {
             $this->browser = new HeadlessBrowser(
                 $options['chrome_path'] ?? '/usr/bin/chromium',
@@ -51,7 +51,7 @@ class JavaScriptFetcher extends Fetcher
         }
 
         $result = $this->browser->render($url);
-        
+
         // Create mock PSR-7 response
         return new \GuzzleHttp\Psr7\Response(
             200,

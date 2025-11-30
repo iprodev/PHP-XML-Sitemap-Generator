@@ -45,7 +45,7 @@ class HeadlessBrowser
         );
 
         $this->logger->info("Starting headless Chrome", ['port' => $this->port]);
-        
+
         $output = shell_exec($command);
         $this->pid = (int)trim($output);
 
@@ -72,11 +72,11 @@ class HeadlessBrowser
             $this->logger->info("Stopping Chrome", ['pid' => $this->pid]);
             posix_kill($this->pid, SIGTERM);
             sleep(1);
-            
+
             if ($this->isRunning()) {
                 posix_kill($this->pid, SIGKILL);
             }
-            
+
             $this->pid = null;
         }
     }
@@ -92,7 +92,7 @@ class HeadlessBrowser
 
         try {
             $client = new \GuzzleHttp\Client();
-            
+
             // Create new page
             $response = $client->get("http://localhost:{$this->port}/json/new");
             $page = json_decode($response->getBody(), true);
@@ -127,7 +127,6 @@ class HeadlessBrowser
                 'screenshot' => $screenshot,
                 'url' => $url
             ];
-
         } catch (\Throwable $e) {
             $this->logger->error("Failed to render page", [
                 'url' => $url,
@@ -143,7 +142,7 @@ class HeadlessBrowser
     private function navigate(string $pageId, string $url): void
     {
         $client = new \GuzzleHttp\Client();
-        
+
         $client->post("http://localhost:{$this->port}/json/page/{$pageId}", [
             'json' => [
                 'method' => 'Page.navigate',
@@ -171,7 +170,7 @@ class HeadlessBrowser
     private function getHtml(string $pageId): string
     {
         $client = new \GuzzleHttp\Client();
-        
+
         $response = $client->post("http://localhost:{$this->port}/json/page/{$pageId}", [
             'json' => [
                 'method' => 'Runtime.evaluate',
@@ -192,7 +191,7 @@ class HeadlessBrowser
     {
         try {
             $client = new \GuzzleHttp\Client();
-            
+
             $response = $client->post("http://localhost:{$this->port}/json/page/{$pageId}", [
                 'json' => [
                     'method' => 'Page.captureScreenshot',
@@ -204,7 +203,6 @@ class HeadlessBrowser
 
             $result = json_decode($response->getBody(), true);
             return $result['result']['data'] ?? null;
-
         } catch (\Throwable $e) {
             $this->logger->warning("Failed to take screenshot", [
                 'error' => $e->getMessage()

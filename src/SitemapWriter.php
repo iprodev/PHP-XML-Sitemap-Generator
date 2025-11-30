@@ -1,7 +1,9 @@
 <?php
+
 namespace IProDev\Sitemap;
 
-class SitemapWriter {
+class SitemapWriter
+{
     private const MAX_URLS_PER_FILE = 50000;
     private const MAX_FILE_SIZE_MB = 50;
 
@@ -16,9 +18,9 @@ class SitemapWriter {
      * @throws \RuntimeException
      */
     public static function write(
-        array $pages, 
-        string $outPath, 
-        int $maxPerFile = 50000, 
+        array $pages,
+        string $outPath,
+        int $maxPerFile = 50000,
         ?string $publicBase = null
     ): array {
         // Validate inputs
@@ -50,7 +52,7 @@ class SitemapWriter {
 
         // Filter valid pages
         $validPages = self::filterValidPages($pages);
-        
+
         if (empty($validPages)) {
             throw new \InvalidArgumentException('No valid pages found to write');
         }
@@ -87,9 +89,10 @@ class SitemapWriter {
     /**
      * Filter and validate pages
      */
-    private static function filterValidPages(array $pages): array {
+    private static function filterValidPages(array $pages): array
+    {
         $valid = [];
-        
+
         foreach ($pages as $page) {
             if (!isset($page['url']) || !is_string($page['url']) || empty($page['url'])) {
                 continue;
@@ -118,7 +121,8 @@ class SitemapWriter {
     /**
      * Write a single sitemap XML file
      */
-    private static function writeSitemapFile(array $pages, string $outPath, int $fileNumber): string {
+    private static function writeSitemapFile(array $pages, string $outPath, int $fileNumber): string
+    {
         $filename = 'sitemap-' . $fileNumber . '.xml';
         $filepath = rtrim($outPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $filename;
 
@@ -127,37 +131,39 @@ class SitemapWriter {
         $xml->setIndent(true);
         $xml->setIndentString('  ');
         $xml->startDocument('1.0', 'UTF-8');
-        
+
         $xml->startElement('urlset');
         $xml->writeAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
         $xml->writeAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
-        $xml->writeAttribute('xsi:schemaLocation', 
+        $xml->writeAttribute(
+            'xsi:schemaLocation',
             'http://www.sitemaps.org/schemas/sitemap/0.9 ' .
-            'http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd');
+            'http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd'
+        );
 
         foreach ($pages as $page) {
             $xml->startElement('url');
-            
+
             // Required: location
             $xml->writeElement('loc', self::escapeXml($page['url']));
-            
+
             // Optional: last modified
             if (!empty($page['lastmod']) && self::isValidDate($page['lastmod'])) {
                 $xml->writeElement('lastmod', $page['lastmod']);
             }
-            
+
             // Optional: change frequency (you can add this field if needed)
             // $xml->writeElement('changefreq', 'daily');
-            
+
             // Optional: priority (you can add this field if needed)
             // $xml->writeElement('priority', '0.8');
-            
+
             $xml->endElement(); // url
         }
 
         $xml->endElement(); // urlset
         $xml->endDocument();
-        
+
         $content = $xml->outputMemory();
 
         if (file_put_contents($filepath, $content) === false) {
@@ -170,7 +176,8 @@ class SitemapWriter {
     /**
      * Compress sitemap file with gzip
      */
-    private static function compressSitemap(string $xmlPath): string {
+    private static function compressSitemap(string $xmlPath): string
+    {
         if (!file_exists($xmlPath)) {
             throw new \RuntimeException("XML file not found: {$xmlPath}");
         }
@@ -181,7 +188,7 @@ class SitemapWriter {
         }
 
         $gzPath = $xmlPath . '.gz';
-        
+
         $fp = gzopen($gzPath, 'w9');
         if ($fp === false) {
             throw new \RuntimeException("Failed to create gzip file: {$gzPath}");
@@ -200,7 +207,8 @@ class SitemapWriter {
     /**
      * Write sitemap index file
      */
-    private static function writeSitemapIndex(array $gzFiles, string $outPath, ?string $publicBase): string {
+    private static function writeSitemapIndex(array $gzFiles, string $outPath, ?string $publicBase): string
+    {
         $indexPath = rtrim($outPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'sitemap-index.xml';
 
         $xml = new \XMLWriter();
@@ -208,7 +216,7 @@ class SitemapWriter {
         $xml->setIndent(true);
         $xml->setIndentString('  ');
         $xml->startDocument('1.0', 'UTF-8');
-        
+
         $xml->startElement('sitemapindex');
         $xml->writeAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
 
@@ -219,7 +227,7 @@ class SitemapWriter {
             }
 
             $gzFilename = basename($gzFilePath);
-            
+
             // Build location URL
             $loc = $gzFilename;
             if ($publicBase !== null && !empty($publicBase)) {
@@ -229,7 +237,7 @@ class SitemapWriter {
 
             $xml->startElement('sitemap');
             $xml->writeElement('loc', self::escapeXml($loc));
-            
+
             // Get file modification time
             $mtime = filemtime($gzFilePath);
             if ($mtime !== false) {
@@ -237,14 +245,14 @@ class SitemapWriter {
             } else {
                 $lastmod = date('Y-m-d\TH:i:s+00:00');
             }
-            
+
             $xml->writeElement('lastmod', $lastmod);
             $xml->endElement(); // sitemap
         }
 
         $xml->endElement(); // sitemapindex
         $xml->endDocument();
-        
+
         $content = $xml->outputMemory();
 
         if (file_put_contents($indexPath, $content) === false) {
@@ -257,39 +265,42 @@ class SitemapWriter {
     /**
      * Sanitize file path to prevent directory traversal
      */
-    private static function sanitizePath(string $path): string {
+    private static function sanitizePath(string $path): string
+    {
         // Remove null bytes
         $path = str_replace("\0", '', $path);
-        
+
         // Normalize path separators
         $path = str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $path);
-        
+
         // Remove relative path components
         $path = realpath($path) ?: $path;
-        
+
         return $path;
     }
 
     /**
      * Escape XML special characters
      */
-    private static function escapeXml(string $text): string {
+    private static function escapeXml(string $text): string
+    {
         return htmlspecialchars($text, ENT_XML1 | ENT_QUOTES, 'UTF-8');
     }
 
     /**
      * Validate date format (Y-m-d or ISO 8601)
      */
-    private static function isValidDate(string $date): bool {
+    private static function isValidDate(string $date): bool
+    {
         $formats = ['Y-m-d', 'Y-m-d\TH:i:sP', 'Y-m-d\TH:i:s\Z'];
-        
+
         foreach ($formats as $format) {
             $d = \DateTime::createFromFormat($format, $date);
             if ($d && $d->format($format) === $date) {
                 return true;
             }
         }
-        
+
         return false;
     }
 }
