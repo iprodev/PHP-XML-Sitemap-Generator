@@ -2,6 +2,7 @@
 
 namespace IProDev\Sitemap\Database;
 
+use IProDev\Sitemap\Utils;
 use PDO;
 use PDOException;
 
@@ -95,7 +96,7 @@ class Database
             VALUES (?, ?, datetime('now'), ?, 'running')"
         );
 
-        $stmt->execute([$domain, $startUrl, json_encode($config)]);
+        $stmt->execute([$domain, $startUrl, json_encode(Utils::redactConfig($config))]);
         return (int)$this->pdo->lastInsertId();
     }
 

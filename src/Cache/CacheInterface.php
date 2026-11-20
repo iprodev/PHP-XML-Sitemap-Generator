@@ -10,7 +10,10 @@ interface CacheInterface
     public function get(string $key): mixed;
 
     /**
-     * Set item in cache
+     * Set item in cache.
+     *
+     * Values must be JSON-serializable (scalars, null and arrays of them);
+     * implementations return false for values that are not.
      */
     public function set(string $key, mixed $value, int $ttl = 3600): bool;
 

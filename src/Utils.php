@@ -124,6 +124,60 @@ class Utils
     }
 
     /**
+     * Remove credentials from a URL (user:password@ part).
+     * Strings that are not URLs are returned unchanged.
+     */
+    public static function redactUrl(string $url): string
+    {
+        // Greedy up to the last "@" before the first "/" so passwords containing "@" are covered
+        return preg_replace('#^([a-z][a-z0-9+.\-]*://)[^/]*@#i', '$1***@', $url) ?? $url;
+    }
+
+    /**
+     * Return a copy of a configuration array that is safe to log, store or send
+     * to third parties: passwords, tokens and credentials are masked.
+     *
+     * - keys that look like secrets (password, secret, token, api key, auth, credential) are replaced
+     * - DSNs lose their password (password=... and user:pass@)
+     * - webhook URLs keep only scheme and host (their path or query often is the secret)
+     * - other URLs lose their user:password@ part
+     */
+    public static function redactConfig(array $config): array
+    {
+        $redacted = [];
+
+        foreach ($config as $key => $value) {
+            $name = strtolower((string)$key);
+
+            if (is_array($value)) {
+                $redacted[$key] = self::redactConfig($value);
+                continue;
+            }
+
+            if (!is_string($value) || $value === '') {
+                $redacted[$key] = $value;
+                continue;
+            }
+
+            if (preg_match('/pass(word)?|pwd|secret|token|api[_-]?key|auth|credential/', $name)) {
+                $redacted[$key] = '[REDACTED]';
+            } elseif (str_contains($name, 'dsn')) {
+                $value = preg_replace('/((?:password|pwd)\s*=)[^;]*/i', '$1***', $value) ?? $value;
+                $redacted[$key] = self::redactUrl($value);
+            } elseif (str_contains($name, 'webhook')) {
+                $parts = parse_url($value);
+                $redacted[$key] = isset($parts['scheme'], $parts['host'])
+                    ? $parts['scheme'] . '://' . $parts['host'] . '/[REDACTED]'
+                    : '[REDACTED]';
+            } else {
+                $redacted[$key] = self::redactUrl($value);
+            }
+        }
+
+        return $redacted;
+    }
+
+    /**
      * Clean URL by removing query parameters and fragments
      */
     public static function cleanUrl(string $url, bool $removeQuery = true): string

@@ -135,8 +135,14 @@ docker run --rm \
 ### With Docker Compose
 
 ```bash
-# Start services
+# Create .env and set MYSQL_ROOT_PASSWORD, DB_PASSWORD, REDIS_PASSWORD and CHROME_TOKEN
+cp .env.example .env
+
+# Start services (ports are bound to 127.0.0.1 only)
 docker-compose up -d
+
+# Optional admin UIs (phpMyAdmin, Redis Commander)
+docker-compose --profile tools up -d
 
 # Run sitemap generation
 docker-compose run --rm app \

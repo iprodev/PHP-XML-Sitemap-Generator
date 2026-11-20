@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🔒 Security
+
+- **Cache:** `FileCache` and `RedisCache` store values as JSON instead of PHP `serialize()`, so a tampered cache file or Redis key can no longer instantiate PHP objects (insecure deserialization). Cached values must now be JSON-serializable; `set()` returns `false` otherwise. Entries written by older versions are treated as cache misses.
+- **Scheduler:** `bin/scheduler` runs `bin/sitemap` through `proc_open()` with an argument array instead of a shell string, and only passes known options (`CronScheduler::buildArguments()`). Schedule config values or keys can no longer inject shell commands.
+- **Secrets:** the crawl configuration sent in the `crawl.started` webhook and stored in the `sitemap_crawls` table is redacted (`Utils::redactConfig()`): proxy and DSN passwords, webhook tokens and secret-looking keys are masked. The proxy shown in the CLI summary and the scheduler's command log are redacted too.
+- **Proxy credentials** are embedded in the proxy URL instead of Guzzle's `auth` option, which sent them as an `Authorization` header to every crawled site.
+- **HTML change report:** crawled URLs are HTML-escaped (stored XSS).
+- **docker-compose:** all ports are bound to `127.0.0.1`; MySQL, PostgreSQL, Redis and browserless Chrome require passwords/tokens from `.env`; phpMyAdmin no longer logs in automatically as root; the admin UIs only start with `--profile tools`.
+
+### 🐛 Fixed
+
+- **Sitemap XML:** URLs and texts were escaped twice (`&` became `&amp;amp;`) in the URL, image, video and news sitemaps.
+- **Sitemap index:** `<loc>` entries are always absolute; without `--public-base` the origin of the crawled site is used. `<lastmod>` now carries the real UTC offset instead of a hard-coded `+00:00`.
+- **robots.txt** follows RFC 9309: consecutive `User-agent` lines share one group, the most specific (longest) rule wins with `Allow` winning ties, and only the groups for this crawler (`php-sitemap-generator`) or, failing that, `*` apply. Added `RobotsTxt::fromString()`.
+- **Proxy:** `--proxy` / `--proxy-file` were applied after the HTTP client had been created and were silently ignored. `--proxy` and `--proxy-file` can now be combined and `--rotate-proxies` is passed to proxies loaded from a file.
+- **Scheduler:** camelCase and snake_case config keys (`maxPages`, `max_pages`) are mapped to the matching CLI options.
+- **CI:** runs on `master`; Docker image name is lowercase; the release job no longer depends on the push-only Docker job; coverage is written to `coverage.xml` for Codecov.
+
 ## [3.0.0] - 2025-11-30
 
 ### 🎉 Major Release

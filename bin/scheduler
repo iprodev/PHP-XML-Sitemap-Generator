@@ -4,8 +4,10 @@
 require __DIR__ . '/../vendor/autoload.php';
 
 use IProDev\Sitemap\Scheduler\CronScheduler;
+use IProDev\Sitemap\Utils;
 
 $scheduler = new CronScheduler('./schedules.json');
+$phpBinary = PHP_BINARY !== '' ? PHP_BINARY : 'php';
 
 // Get schedules that should run now
 $dueSchedules = $scheduler->getDueSchedules();
@@ -25,38 +27,37 @@ foreach ($dueSchedules as $schedule) {
     echo str_repeat('-', 50) . "\n";
     
     try {
-        // Build command
-        $command = 'php ' . __DIR__ . '/sitemap';
-        
-        foreach ($config as $key => $value) {
-            if ($key === 'schedule') {
-                continue;
-            }
-            
-            $option = '--' . str_replace('_', '-', $key);
-            
-            if (is_bool($value)) {
-                if ($value) {
-                    $command .= " {$option}";
-                }
-            } elseif (is_array($value)) {
-                $command .= " {$option}=" . implode(',', $value);
-            } else {
-                $command .= " {$option}=" . escapeshellarg($value);
-            }
+        if (!is_array($config)) {
+            throw new \RuntimeException('Schedule config must be an object');
         }
-        
-        echo "Command: {$command}\n\n";
-        
-        // Execute
-        $output = [];
-        $returnCode = 0;
-        exec($command . ' 2>&1', $output, $returnCode);
-        
-        foreach ($output as $line) {
-            echo $line . "\n";
+
+        // Build the command as an argument array: proc_open() then runs it
+        // without a shell, so config values can never inject shell commands.
+        $skipped = [];
+        $command = array_merge(
+            [$phpBinary, __DIR__ . '/sitemap'],
+            CronScheduler::buildArguments($config, $skipped)
+        );
+
+        if (!empty($skipped)) {
+            echo "Ignoring unknown or invalid options: " . implode(', ', $skipped) . "\n";
         }
-        
+
+        // Display a redacted version so credentials do not end up in logs
+        $display = array_merge(
+            [$phpBinary, __DIR__ . '/sitemap'],
+            CronScheduler::buildArguments(Utils::redactConfig($config))
+        );
+        echo "Command: " . implode(' ', array_map('escapeshellarg', $display)) . "\n\n";
+
+        // Execute, streaming the child's output straight to ours
+        $process = proc_open($command, [0 => ['pipe', 'r'], 1 => STDOUT, 2 => STDERR], $pipes);
+        if (!is_resource($process)) {
+            throw new \RuntimeException('Failed to start bin/sitemap');
+        }
+        fclose($pipes[0]);
+        $returnCode = proc_close($process);
+
         if ($returnCode === 0) {
             echo "\n✅ Schedule '{$name}' completed successfully\n";
             $scheduler->markAsRun($name);

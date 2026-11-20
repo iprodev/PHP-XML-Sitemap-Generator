@@ -132,7 +132,7 @@ php bin/sitemap \
 --concurrency=<N>        # Concurrent requests (1-100)
 --max-pages=<N>          # Maximum pages to crawl
 --max-depth=<N>          # Maximum link depth
---public-base=<URL>      # Public base URL for sitemap index
+--public-base=<URL>      # Public base URL for sitemap index (default: origin of --url)
 --verbose, -v            # Verbose output
 --help, -h               # Show help
 ```

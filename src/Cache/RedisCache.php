@@ -40,17 +40,18 @@ class RedisCache implements CacheInterface
             return null;
         }
 
-        return unserialize($value);
+        return $this->decode($value);
     }
 
-    public function set(string $key, mixed $value, int $ttl = null): bool
+    public function set(string $key, mixed $value, ?int $ttl = null): bool
     {
         $ttl = $ttl ?? $this->defaultTtl;
-        return $this->redis->setex(
-            $this->prefix . $key,
-            $ttl,
-            serialize($value)
-        );
+        $encoded = $this->encode($value);
+        if ($encoded === null) {
+            return false;
+        }
+
+        return (bool)$this->redis->setex($this->prefix . $key, $ttl, $encoded);
     }
 
     public function has(string $key): bool
@@ -82,19 +83,29 @@ class RedisCache implements CacheInterface
 
         $result = [];
         foreach ($keys as $i => $key) {
-            $result[$key] = $values[$i] !== false ? unserialize($values[$i]) : null;
+            $result[$key] = $values[$i] !== false ? $this->decode($values[$i]) : null;
         }
 
         return $result;
     }
 
-    public function setMultiple(array $items, int $ttl = null): bool
+    public function setMultiple(array $items, ?int $ttl = null): bool
     {
         $ttl = $ttl ?? $this->defaultTtl;
+
+        $encodedItems = [];
+        foreach ($items as $key => $value) {
+            $encoded = $this->encode($value);
+            if ($encoded === null) {
+                return false;
+            }
+            $encodedItems[$key] = $encoded;
+        }
+
         $pipe = $this->redis->multi(\Redis::PIPELINE);
 
-        foreach ($items as $key => $value) {
-            $pipe->setex($this->prefix . $key, $ttl, serialize($value));
+        foreach ($encodedItems as $key => $encoded) {
+            $pipe->setex($this->prefix . $key, $ttl, $encoded);
         }
 
         $results = $pipe->exec();
@@ -114,6 +125,28 @@ class RedisCache implements CacheInterface
             'redis_info' => $this->redis->info(),
             'prefix' => $this->prefix
         ];
+    }
+
+    /**
+     * Values are stored as JSON instead of PHP serialization, so data written
+     * to Redis by someone else can never instantiate PHP objects when read.
+     */
+    private function encode(mixed $value): ?string
+    {
+        try {
+            return json_encode($value, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION);
+        } catch (\JsonException $e) {
+            return null;
+        }
+    }
+
+    private function decode(string $raw): mixed
+    {
+        try {
+            return json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            return null;
+        }
     }
 
     /**

@@ -125,4 +125,36 @@ class FileCacheTest extends TestCase
         $this->assertArrayHasKey('valid_entries', $stats);
         $this->assertEquals(2, $stats['total_entries']);
     }
+
+    public function testTamperedCacheFileCannotInstantiateObjects(): void
+    {
+        // A PHP-serialized object planted in the cache directory must not be unserialized
+        $file = $this->cacheDir . '/' . md5('planted') . '.cache';
+        file_put_contents($file, 'O:8:"stdClass":2:{s:5:"value";s:1:"x";s:7:"expires";i:9999999999;}');
+
+        $this->assertNull($this->cache->get('planted'));
+        $this->assertFileDoesNotExist($file);
+    }
+
+    public function testCorruptCacheFileIsTreatedAsMiss(): void
+    {
+        $read = $this->cacheDir . '/' . md5('corrupt') . '.cache';
+        $unread = $this->cacheDir . '/' . md5('corrupt-2') . '.cache';
+        file_put_contents($read, '{not json');
+        file_put_contents($unread, '{not json');
+
+        // Reading a corrupt entry is a miss and removes it
+        $this->assertNull($this->cache->get('corrupt'));
+        $this->assertFileDoesNotExist($read);
+
+        // cleanup() removes the remaining corrupt entry
+        $this->assertSame(1, $this->cache->cleanup());
+        $this->assertFileDoesNotExist($unread);
+    }
+
+    public function testValueThatCannotBeEncodedIsRejected(): void
+    {
+        $this->assertFalse($this->cache->set('nan', NAN));
+        $this->assertNull($this->cache->get('nan'));
+    }
 }

@@ -42,15 +42,14 @@ class NewsSitemapWriter
 
             foreach ($chunk as $page) {
                 $xml->startElement('url');
-                $xml->writeElement('loc', htmlspecialchars($page['url'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
+                $xml->writeElement('loc', $page['url']);
 
                 $xml->startElement('news:news');
 
                 // Publication info
                 $xml->startElement('news:publication');
                 $pubName = $page['publication_name'] ?? 'News Site';
-                $encFlags = ENT_XML1 | ENT_QUOTES;
-                $xml->writeElement('news:name', htmlspecialchars($pubName, $encFlags, 'UTF-8'));
+                $xml->writeElement('news:name', $pubName);
                 $xml->writeElement('news:language', $page['language'] ?? 'en');
                 $xml->endElement(); // news:publication
 
@@ -59,12 +58,12 @@ class NewsSitemapWriter
                 $xml->writeElement('news:publication_date', $pubDate);
 
                 // Title
-                $xml->writeElement('news:title', htmlspecialchars($page['title'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
+                $xml->writeElement('news:title', $page['title']);
 
                 // Optional: keywords
                 if (!empty($page['keywords'])) {
                     $keywords = is_array($page['keywords']) ? implode(', ', $page['keywords']) : $page['keywords'];
-                    $xml->writeElement('news:keywords', htmlspecialchars($keywords, ENT_XML1 | ENT_QUOTES, 'UTF-8'));
+                    $xml->writeElement('news:keywords', $keywords);
                 }
 
                 $xml->endElement(); // news:news

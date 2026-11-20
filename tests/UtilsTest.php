@@ -93,4 +93,48 @@ class UtilsTest extends TestCase
         $this->assertIsString($usage);
         $this->assertMatchesRegularExpression('/\d+(\.\d+)?\s[KMGT]?B/', $usage);
     }
+
+    public function testRedactUrl(): void
+    {
+        $this->assertSame(
+            'http://***@proxy.example.com:8080',
+            Utils::redactUrl('http://user:p@ss@proxy.example.com:8080')
+        );
+        $this->assertSame('https://example.com/a@b', Utils::redactUrl('https://example.com/a@b'));
+        $this->assertSame('https://example.com/', Utils::redactUrl('https://example.com/'));
+        $this->assertSame('./proxies.txt', Utils::redactUrl('./proxies.txt'));
+    }
+
+    public function testRedactConfigMasksCredentials(): void
+    {
+        $config = [
+            'url' => 'https://example.com/page?x=1',
+            'proxy' => 'http://bob:s3cret@proxy.example.com:8080',
+            'proxyFile' => './proxies.txt',
+            'dbDsn' => 'pgsql:host=db;dbname=sitemap;user=app;password=hunter2',
+            'otherDsn' => 'mysql://app:hunter3@db/sitemap',
+            'webhookUrl' => 'https://hooks.example.com/services/T000/B000/XYZTOKEN',
+            'redisPassword' => 'r3dis',
+            'nested' => ['apiKey' => 'k3y', 'auth' => ['token' => 't0ken']],
+            'concurrency' => 10,
+            'verbose' => true,
+            'exclude' => ['/admin/*'],
+        ];
+
+        $redacted = Utils::redactConfig($config);
+        $json = (string)json_encode($redacted);
+
+        foreach (['s3cret', 'hunter2', 'hunter3', 'XYZTOKEN', 'r3dis', 'k3y', 't0ken'] as $secret) {
+            $this->assertStringNotContainsString($secret, $json);
+        }
+
+        $this->assertSame('https://example.com/page?x=1', $redacted['url']);
+        $this->assertSame('http://***@proxy.example.com:8080', $redacted['proxy']);
+        $this->assertSame('./proxies.txt', $redacted['proxyFile']);
+        $this->assertSame('pgsql:host=db;dbname=sitemap;user=app;password=***', $redacted['dbDsn']);
+        $this->assertSame('https://hooks.example.com/[REDACTED]', $redacted['webhookUrl']);
+        $this->assertSame(10, $redacted['concurrency']);
+        $this->assertTrue($redacted['verbose']);
+        $this->assertSame(['/admin/*'], $redacted['exclude']);
+    }
 }

@@ -131,4 +131,55 @@ ROBOTS;
         $this->assertContains('/admin/', $disallows);
         $this->assertContains('/public/', $allows);
     }
+
+    public function testFromString(): void
+    {
+        $robots = RobotsTxt::fromString("User-agent: *\nDisallow: /admin/\n");
+
+        $this->assertFalse($robots->isAllowed('https://example.com/admin/x'));
+        $this->assertTrue($robots->isAllowed('https://example.com/'));
+    }
+
+    public function testConsecutiveUserAgentLinesShareOneGroup(): void
+    {
+        $robots = RobotsTxt::fromString(
+            "User-agent: *\nUser-agent: SomeOtherBot\nDisallow: /blocked/\n"
+        );
+
+        $this->assertFalse($robots->isAllowed('https://example.com/blocked/page'));
+    }
+
+    public function testLongestMatchingRuleWins(): void
+    {
+        $robots = RobotsTxt::fromString("User-agent: *\nAllow: /p\nDisallow: /private/\n");
+
+        $this->assertFalse($robots->isAllowed('https://example.com/private/secret'));
+        $this->assertTrue($robots->isAllowed('https://example.com/public'));
+    }
+
+    public function testAllowWinsWhenEquallySpecific(): void
+    {
+        $robots = RobotsTxt::fromString("User-agent: *\nDisallow: /page\nAllow: /page\n");
+
+        $this->assertTrue($robots->isAllowed('https://example.com/page'));
+    }
+
+    public function testOwnUserAgentGroupReplacesWildcardGroup(): void
+    {
+        $robots = RobotsTxt::fromString(
+            "User-agent: php-sitemap-generator\nDisallow: /mine/\n\nUser-agent: *\nDisallow: /all/\n"
+        );
+
+        $this->assertFalse($robots->isAllowed('https://example.com/mine/x'));
+        $this->assertTrue($robots->isAllowed('https://example.com/all/x'));
+    }
+
+    public function testGroupsForOtherCrawlersAreIgnored(): void
+    {
+        $robots = RobotsTxt::fromString(
+            "User-agent: Googlebot\nDisallow: /google-only/\n\nUser-agent: *\nDisallow:\n"
+        );
+
+        $this->assertTrue($robots->isAllowed('https://example.com/google-only/x'));
+    }
 }

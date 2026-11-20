@@ -4,6 +4,33 @@ namespace IProDev\Sitemap\Scheduler;
 
 class CronScheduler
 {
+    /**
+     * bin/sitemap options that take a value
+     */
+    public const VALUE_OPTIONS = [
+        'url', 'out', 'concurrency', 'max-pages', 'max-depth', 'public-base',
+        'rate-limit', 'delay', 'cache-driver', 'cache-ttl', 'checkpoint-interval',
+        'db-dsn', 'exclude', 'include', 'priority-rules', 'chrome-path',
+        'wait-for-ajax', 'proxy', 'proxy-file', 'webhook-url',
+    ];
+
+    /**
+     * bin/sitemap options that are on/off flags
+     */
+    public const FLAG_OPTIONS = [
+        'cache-enabled', 'resume', 'db-enabled', 'detect-changes', 'only-changed',
+        'seo-analysis', 'check-quality', 'find-duplicates', 'find-broken-links',
+        'image-sitemap', 'video-sitemap', 'news-sitemap', 'enable-javascript',
+        'rotate-proxies', 'notify-on-complete', 'notify-on-error', 'verbose',
+    ];
+
+    /**
+     * Config keys whose kebab-case form differs from the option name
+     */
+    private const OPTION_ALIASES = [
+        'enable-java-script' => 'enable-javascript',
+    ];
+
     private string $scheduleFile;
     private array $schedules = [];
 
@@ -198,6 +225,85 @@ class CronScheduler
             $this->scheduleFile,
             json_encode($this->schedules, JSON_PRETTY_PRINT)
         );
+    }
+
+    /**
+     * Turn a schedule's config into bin/sitemap arguments.
+     *
+     * The result is meant for proc_open() with an argument array, so no shell
+     * is involved and values are never interpreted as shell syntax. Only known
+     * options are passed on; keys may be kebab-case, snake_case or camelCase
+     * (e.g. "max-pages", "max_pages" or "maxPages").
+     *
+     * @param array<string, mixed> $config
+     * @param string[]|null $skipped receives the config keys that were ignored
+     * @return string[] arguments such as "--url=https://example.com" or "--verbose"
+     */
+    public static function buildArguments(array $config, ?array &$skipped = null): array
+    {
+        $skipped = [];
+        $args = [];
+
+        foreach ($config as $key => $value) {
+            if ($key === 'schedule') {
+                continue;
+            }
+
+            $option = self::normalizeOptionName((string)$key);
+
+            if (in_array($option, self::FLAG_OPTIONS, true)) {
+                if (filter_var($value, FILTER_VALIDATE_BOOLEAN)) {
+                    $args[] = '--' . $option;
+                }
+                continue;
+            }
+
+            if (!in_array($option, self::VALUE_OPTIONS, true)) {
+                $skipped[] = (string)$key;
+                continue;
+            }
+
+            $stringValue = self::optionValueToString($option, $value);
+            if ($stringValue === null) {
+                $skipped[] = (string)$key;
+                continue;
+            }
+
+            $args[] = '--' . $option . '=' . $stringValue;
+        }
+
+        return $args;
+    }
+
+    private static function normalizeOptionName(string $key): string
+    {
+        $option = strtolower(preg_replace('/(?<=[a-z0-9])([A-Z])/', '-$1', $key) ?? $key);
+        $option = str_replace('_', '-', $option);
+
+        return self::OPTION_ALIASES[$option] ?? $option;
+    }
+
+    private static function optionValueToString(string $option, mixed $value): ?string
+    {
+        if (is_array($value)) {
+            if ($option === 'priority-rules') {
+                $encoded = json_encode($value);
+                return $encoded === false ? null : $encoded;
+            }
+            foreach ($value as $item) {
+                if (!is_scalar($item)) {
+                    return null;
+                }
+            }
+            $value = implode(',', $value);
+        } elseif (is_bool($value) || !is_scalar($value)) {
+            return null;
+        }
+
+        $value = (string)$value;
+
+        // NUL bytes cannot be passed as process arguments
+        return str_contains($value, "\0") ? null : $value;
     }
 
     /**
