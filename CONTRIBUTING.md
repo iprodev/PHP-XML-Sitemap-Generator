@@ -98,6 +98,9 @@ make test
 ### Using Docker
 
 ```bash
+# Create .env and set the required passwords (see .env.example)
+cp .env.example .env
+
 # Start services
 docker-compose up -d
 

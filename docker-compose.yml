@@ -1,4 +1,11 @@
-version: '3.8'
+# Security notes
+# - Every published port is bound to 127.0.0.1 only. Docker publishes ports past
+#   host firewalls such as ufw, so binding to 0.0.0.0 would expose these services
+#   (databases, Redis, a remote-controllable browser) to the whole network.
+# - Passwords and tokens come from .env (copy .env.example and fill them in);
+#   `docker compose` refuses to start while a required one is missing.
+# - The admin UIs (phpMyAdmin, Redis Commander) only start with the "tools"
+#   profile: docker compose --profile tools up -d
 
 services:
   # PHP Application
@@ -21,10 +28,10 @@ services:
     image: redis:7-alpine
     container_name: sitemap-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis-data:/data
-    command: redis-server --appendonly yes
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}"]
     networks:
       - sitemap-network
 
@@ -33,12 +40,12 @@ services:
     image: mysql:8.0
     container_name: sitemap-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: sitemap
-      MYSQL_USER: sitemap
-      MYSQL_PASSWORD: sitemap
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${DB_DATABASE:-sitemap}
+      MYSQL_USER: ${DB_USERNAME:-sitemap}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
@@ -49,11 +56,11 @@ services:
     image: postgres:15-alpine
     container_name: sitemap-postgres
     environment:
-      POSTGRES_DB: sitemap
-      POSTGRES_USER: sitemap
-      POSTGRES_PASSWORD: sitemap
+      POSTGRES_DB: ${DB_DATABASE:-sitemap}
+      POSTGRES_USER: ${DB_USERNAME:-sitemap}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
@@ -64,24 +71,24 @@ services:
     image: browserless/chrome:latest
     container_name: sitemap-chrome
     ports:
-      - "9222:3000"
+      - "127.0.0.1:9222:3000"
     environment:
+      - TOKEN=${CHROME_TOKEN:?Set CHROME_TOKEN in .env}
       - CONNECTION_TIMEOUT=600000
       - MAX_CONCURRENT_SESSIONS=10
       - PREBOOT_CHROME=true
     networks:
       - sitemap-network
 
-  # PHPMyAdmin (optional)
+  # PHPMyAdmin (optional, log in with your MySQL credentials)
   phpmyadmin:
     image: phpmyadmin:latest
     container_name: sitemap-phpmyadmin
+    profiles: ["tools"]
     environment:
       PMA_HOST: mysql
-      PMA_USER: root
-      PMA_PASSWORD: root
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     depends_on:
       - mysql
     networks:
@@ -91,10 +98,11 @@ services:
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: sitemap-redis-commander
+    profiles: ["tools"]
     environment:
-      REDIS_HOSTS: local:redis:6379
+      REDIS_HOSTS: local:redis:6379:0:${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
     ports:
-      - "8081:8081"
+      - "127.0.0.1:8081:8081"
     depends_on:
       - redis
     networks:
