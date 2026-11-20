@@ -37,21 +37,19 @@ class ImageSitemapWriter
                 }
 
                 $xml->startElement('url');
-                $xml->writeElement('loc', htmlspecialchars($page['url'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
-
-                $encFlags = ENT_XML1 | ENT_QUOTES;
+                $xml->writeElement('loc', $page['url']);
                 foreach ($page['images'] as $image) {
                     $xml->startElement('image:image');
-                    $loc = htmlspecialchars($image['url'], $encFlags, 'UTF-8');
+                    $loc = $image['url'];
                     $xml->writeElement('image:loc', $loc);
 
                     if (!empty($image['title'])) {
-                        $title = htmlspecialchars($image['title'], $encFlags, 'UTF-8');
+                        $title = $image['title'];
                         $xml->writeElement('image:title', $title);
                     }
 
                     if (!empty($image['caption'])) {
-                        $caption = htmlspecialchars($image['caption'], $encFlags, 'UTF-8');
+                        $caption = $image['caption'];
                         $xml->writeElement('image:caption', $caption);
                     }
 

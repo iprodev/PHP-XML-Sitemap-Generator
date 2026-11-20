@@ -36,29 +36,27 @@ class VideoSitemapWriter
                 }
 
                 $xml->startElement('url');
-                $xml->writeElement('loc', htmlspecialchars($page['url'], ENT_XML1 | ENT_QUOTES, 'UTF-8'));
-
-                $encFlags = ENT_XML1 | ENT_QUOTES;
+                $xml->writeElement('loc', $page['url']);
                 foreach ($page['videos'] as $video) {
                     $xml->startElement('video:video');
 
                     // Required fields
-                    $thumb = htmlspecialchars($video['thumbnail'], $encFlags, 'UTF-8');
+                    $thumb = $video['thumbnail'];
                     $xml->writeElement('video:thumbnail_loc', $thumb);
-                    $title = htmlspecialchars($video['title'], $encFlags, 'UTF-8');
+                    $title = $video['title'];
                     $xml->writeElement('video:title', $title);
-                    $desc = htmlspecialchars($video['description'], $encFlags, 'UTF-8');
+                    $desc = $video['description'];
                     $xml->writeElement('video:description', $desc);
 
                     // Optional: content location
                     if (!empty($video['content_url'])) {
-                        $contentUrl = htmlspecialchars($video['content_url'], $encFlags, 'UTF-8');
+                        $contentUrl = $video['content_url'];
                         $xml->writeElement('video:content_loc', $contentUrl);
                     }
 
                     // Optional: player location
                     if (!empty($video['player_url'])) {
-                        $playerUrl = htmlspecialchars($video['player_url'], $encFlags, 'UTF-8');
+                        $playerUrl = $video['player_url'];
                         $xml->writeElement('video:player_loc', $playerUrl);
                     }
 
@@ -80,7 +78,7 @@ class VideoSitemapWriter
                     // Optional: tags
                     if (!empty($video['tags'])) {
                         foreach ($video['tags'] as $tag) {
-                            $xml->writeElement('video:tag', htmlspecialchars($tag, ENT_XML1 | ENT_QUOTES, 'UTF-8'));
+                            $xml->writeElement('video:tag', $tag);
                         }
                     }
 

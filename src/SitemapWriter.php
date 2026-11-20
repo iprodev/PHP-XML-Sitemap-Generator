@@ -12,7 +12,8 @@ class SitemapWriter
      * @param array<int,array{url:string,status:int,lastmod:?string}> $pages
      * @param string $outPath directory path to write files
      * @param int $maxPerFile maximum URLs per sitemap file (<= 50,000 per spec)
-     * @param string|null $publicBase public base URL used to build <loc> for sitemap files in the index
+     * @param string|null $publicBase public base URL used to build <loc> for sitemap files in the index;
+     *                                defaults to the origin (scheme://host) of the first page
      * @return string[] list of generated file paths
      * @throws \InvalidArgumentException
      * @throws \RuntimeException
@@ -73,6 +74,12 @@ class SitemapWriter
                     $e
                 );
             }
+        }
+
+        // The sitemap protocol requires absolute URLs in the index. When no public
+        // base is given, assume the files are served from the root of the crawled site.
+        if ($publicBase === null || $publicBase === '') {
+            $publicBase = self::originOf($validPages[0]['url']);
         }
 
         // Create sitemap index
@@ -144,8 +151,8 @@ class SitemapWriter
         foreach ($pages as $page) {
             $xml->startElement('url');
 
-            // Required: location
-            $xml->writeElement('loc', self::escapeXml($page['url']));
+            // Required: location (XMLWriter escapes special characters itself)
+            $xml->writeElement('loc', $page['url']);
 
             // Optional: last modified
             if (!empty($page['lastmod']) && self::isValidDate($page['lastmod'])) {
@@ -207,7 +214,7 @@ class SitemapWriter
     /**
      * Write sitemap index file
      */
-    private static function writeSitemapIndex(array $gzFiles, string $outPath, ?string $publicBase): string
+    private static function writeSitemapIndex(array $gzFiles, string $outPath, string $publicBase): string
     {
         $indexPath = rtrim($outPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'sitemap-index.xml';
 
@@ -227,24 +234,14 @@ class SitemapWriter
             }
 
             $gzFilename = basename($gzFilePath);
-
-            // Build location URL
-            $loc = $gzFilename;
-            if ($publicBase !== null && !empty($publicBase)) {
-                $publicBase = rtrim($publicBase, '/');
-                $loc = $publicBase . '/' . $gzFilename;
-            }
+            $loc = rtrim($publicBase, '/') . '/' . $gzFilename;
 
             $xml->startElement('sitemap');
-            $xml->writeElement('loc', self::escapeXml($loc));
+            $xml->writeElement('loc', $loc);
 
-            // Get file modification time
+            // W3C datetime with the real UTC offset of the configured timezone
             $mtime = filemtime($gzFilePath);
-            if ($mtime !== false) {
-                $lastmod = date('Y-m-d\TH:i:s+00:00', $mtime);
-            } else {
-                $lastmod = date('Y-m-d\TH:i:s+00:00');
-            }
+            $lastmod = date(DATE_ATOM, $mtime !== false ? $mtime : time());
 
             $xml->writeElement('lastmod', $lastmod);
             $xml->endElement(); // sitemap
@@ -280,11 +277,17 @@ class SitemapWriter
     }
 
     /**
-     * Escape XML special characters
+     * Return scheme://host[:port] of a URL
      */
-    private static function escapeXml(string $text): string
+    private static function originOf(string $url): string
     {
-        return htmlspecialchars($text, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+        $parts = parse_url($url);
+        $origin = ($parts['scheme'] ?? 'https') . '://' . ($parts['host'] ?? '');
+        if (isset($parts['port'])) {
+            $origin .= ':' . $parts['port'];
+        }
+
+        return $origin;
     }
 
     /**
