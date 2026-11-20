@@ -137,4 +137,12 @@ class UtilsTest extends TestCase
         $this->assertTrue($redacted['verbose']);
         $this->assertSame(['/admin/*'], $redacted['exclude']);
     }
+
+    public function testCountWords(): void
+    {
+        $this->assertSame(3, Utils::countWords('Hello, wide world!'));
+        $this->assertSame(5, Utils::countWords('این متن را می‌شود شمرد'));
+        $this->assertSame(2, Utils::countWords("it's 2026"));
+        $this->assertSame(0, Utils::countWords('  ... '));
+    }
 }

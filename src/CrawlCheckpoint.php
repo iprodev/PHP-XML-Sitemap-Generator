@@ -27,10 +27,17 @@ class CrawlCheckpoint
             mkdir($dir, 0755, true);
         }
 
-        file_put_contents(
-            $this->checkpointFile,
-            json_encode($state, JSON_PRETTY_PRINT)
-        );
+        $json = json_encode($state, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($json === false) {
+            throw new \RuntimeException('Failed to encode checkpoint: ' . json_last_error_msg());
+        }
+
+        // Write to a temporary file and rename it, so an interrupted save never leaves a corrupt checkpoint
+        $tmp = $this->checkpointFile . '.tmp';
+        if (file_put_contents($tmp, $json, LOCK_EX) === false || !rename($tmp, $this->checkpointFile)) {
+            @unlink($tmp);
+            throw new \RuntimeException("Failed to write checkpoint file: {$this->checkpointFile}");
+        }
     }
 
     /**
@@ -43,7 +50,12 @@ class CrawlCheckpoint
         }
 
         $content = file_get_contents($this->checkpointFile);
-        return json_decode($content, true);
+        if ($content === false) {
+            return null;
+        }
+
+        $state = json_decode($content, true);
+        return is_array($state) ? $state : null;
     }
 
     /**
@@ -89,6 +101,14 @@ class CrawlCheckpoint
     {
         $age = $this->getAge();
         return $age !== null && $age > $maxAge;
+    }
+
+    /**
+     * Number of processed pages between two saves
+     */
+    public function getInterval(): int
+    {
+        return $this->interval;
     }
 
     /**

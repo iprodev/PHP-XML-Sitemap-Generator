@@ -178,4 +178,60 @@ HTML;
         $this->expectException(\InvalidArgumentException::class);
         Parser::resolveUrl('ht!tp://invalid', 'https://example.com');
     }
+
+    public function testParseDocument(): void
+    {
+        $html = '<html lang="fa"><head><base href="/blog/"><title> سلام   دنیا </title>'
+            . '<link rel="alternate canonical" href="post?id=1">'
+            . '<meta name="robots" content="NoIndex, follow"><meta name="description" content="توضیح"></head>'
+            . '<body><h1>عنوان</h1><p>این متن می‌شود شمرد</p><script>var a = "not words";</script>'
+            . '<a href="a">a</a> <a rel="external NoFollow" href="/skip">s</a> <a href="mailto:x@example.com">m</a>'
+            . '<img src="x.png"></body></html>';
+
+        $doc = Parser::parseDocument($html, 'https://example.com/x/y');
+
+        $this->assertSame(['https://example.com/blog/a'], $doc['links']);
+        $this->assertSame('https://example.com/blog/post?id=1', $doc['canonical']);
+        $this->assertSame(['noindex', 'follow'], $doc['robots']);
+        $this->assertSame('سلام دنیا', $doc['title']);
+        $this->assertSame('توضیح', $doc['meta_description']);
+        $this->assertSame('عنوان', $doc['h1']);
+        $this->assertSame('fa', $doc['lang']);
+        $this->assertSame(1, $doc['image_count']);
+        $this->assertSame(3, $doc['link_count']);
+        // عنوان، این، متن، می‌شود، شمرد، a، s، m (script content is ignored)
+        $this->assertSame(8, $doc['word_count']);
+    }
+
+    public function testParseDocumentWithEmptyHtml(): void
+    {
+        $doc = Parser::parseDocument('', 'https://example.com/');
+
+        $this->assertSame([], $doc['links']);
+        $this->assertNull($doc['canonical']);
+        $this->assertSame(0, $doc['word_count']);
+    }
+
+    public function testNonAsciiLinksSurviveParsing(): void
+    {
+        $links = Parser::extractLinks('<a href="/مقاله/یک">x</a>', 'https://example.com/');
+
+        $this->assertSame(['https://example.com/%D9%85%D9%82%D8%A7%D9%84%D9%87/%DB%8C%DA%A9'], $links);
+    }
+
+    public function testToUtf8(): void
+    {
+        $latin1 = "<html><body>caf\xe9</body></html>";
+
+        $this->assertSame(
+            '<html><body>café</body></html>',
+            Parser::toUtf8($latin1, 'text/html; charset=windows-1252')
+        );
+        $this->assertSame(
+            '<meta charset="iso-8859-1">café',
+            Parser::toUtf8("<meta charset=\"iso-8859-1\">caf\xe9")
+        );
+        $this->assertSame('café', Parser::toUtf8('café', 'text/html; charset=UTF-8'));
+        $this->assertSame('plain', Parser::toUtf8('plain', 'text/html; charset=unknown-charset'));
+    }
 }
