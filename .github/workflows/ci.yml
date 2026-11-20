@@ -62,6 +62,59 @@ jobs:
         flags: unittests
         name: codecov-umbrella
 
+  database:
+    name: Database tests (MySQL, PostgreSQL)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root-test-password
+          MYSQL_DATABASE: sitemap
+          MYSQL_USER: sitemap
+          MYSQL_PASSWORD: test-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: sitemap
+          POSTGRES_USER: sitemap
+          POSTGRES_PASSWORD: test-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U sitemap"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+        extensions: curl, xml, mbstring, pdo, pdo_sqlite, pdo_mysql, pdo_pgsql
+        tools: composer:v2
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-interaction
+
+    - name: Run database tests
+      env:
+        SITEMAP_TEST_MYSQL_DSN: mysql:host=127.0.0.1;port=3306;dbname=sitemap
+        SITEMAP_TEST_MYSQL_USER: sitemap
+        SITEMAP_TEST_MYSQL_PASSWORD: test-password
+        SITEMAP_TEST_PGSQL_DSN: pgsql:host=127.0.0.1;port=5432;dbname=sitemap
+        SITEMAP_TEST_PGSQL_USER: sitemap
+        SITEMAP_TEST_PGSQL_PASSWORD: test-password
+      run: vendor/bin/phpunit tests/DatabaseTest.php
+
   static-analysis:
     name: Static Analysis
     runs-on: ubuntu-latest
