@@ -122,7 +122,10 @@ class UrlFilter
                 continue;
             }
 
-            $page['priority'] = $this->getPriority($url);
+            // Only set a priority when rules are configured; otherwise leave it out of the sitemap
+            if (!empty($this->priorityRules)) {
+                $page['priority'] = $this->getPriority($url);
+            }
             $filtered[] = $page;
         }
 

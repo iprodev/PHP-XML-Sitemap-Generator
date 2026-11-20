@@ -43,7 +43,7 @@ class Parser
             'link_count' => 0,
         ];
 
-        $dom = self::loadHtml($html);
+        $dom = self::loadDocument($html);
         if ($dom === null) {
             return $result;
         }
@@ -87,7 +87,7 @@ class Parser
             return [];
         }
 
-        $dom = self::loadHtml($html);
+        $dom = self::loadDocument($html);
         if ($dom === null) {
             throw new \RuntimeException('Failed to parse HTML');
         }
@@ -154,7 +154,7 @@ class Parser
             return null;
         }
 
-        $dom = self::loadHtml($html);
+        $dom = self::loadDocument($html);
         return $dom === null ? null : self::findCanonical($dom, self::documentBase($dom, $baseUrl));
     }
 
@@ -167,7 +167,7 @@ class Parser
             return [];
         }
 
-        $dom = self::loadHtml($html);
+        $dom = self::loadDocument($html);
         return $dom === null ? [] : self::collectMetaRobots($dom);
     }
 
@@ -204,9 +204,9 @@ class Parser
     }
 
     /**
-     * Load HTML (expected to be UTF-8) into a DOM document
+     * Load HTML (expected to be UTF-8) into a DOM document; null if it is empty or unparsable
      */
-    private static function loadHtml(string $html): ?\DOMDocument
+    public static function loadDocument(string $html): ?\DOMDocument
     {
         if (trim($html) === '') {
             return null;
@@ -231,7 +231,7 @@ class Parser
     /**
      * Base URL for relative links: <base href> if present, else the page URL
      */
-    private static function documentBase(\DOMDocument $dom, string $pageUrl): string
+    public static function documentBase(\DOMDocument $dom, string $pageUrl): string
     {
         $base = $dom->getElementsByTagName('base')->item(0);
         if ($base instanceof \DOMElement && trim($base->getAttribute('href')) !== '') {

@@ -126,4 +126,42 @@ class SitemapWriterTest extends TestCase
         $this->assertSame('https://example.com/i.png?w=1&h=2', (string)$image->loc);
         $this->assertSame('Tom & Jerry', (string)$image->title);
     }
+
+    public function testPriorityIsWrittenWhenPresent(): void
+    {
+        $files = SitemapWriter::write([
+            $this->page('https://example.com/') + ['priority' => 0.8],
+            $this->page('https://example.com/b') + ['priority' => 5],
+            $this->page('https://example.com/c'),
+        ], $this->outDir);
+
+        $xml = simplexml_load_string($this->readGzip($files[0]));
+        $this->assertSame('0.8', (string)$xml->url[0]->priority);
+        $this->assertSame('1.0', (string)$xml->url[1]->priority);
+        $this->assertCount(0, $xml->url[2]->priority);
+    }
+
+    public function testAdditionalSitemapsAreListedInTheIndex(): void
+    {
+        $imageFiles = ImageSitemapWriter::write([
+            ['url' => 'https://example.com/', 'images' => [['url' => 'https://example.com/a.png']]],
+            ['url' => 'https://example.com/no-images', 'images' => []],
+        ], $this->outDir);
+        $files = SitemapWriter::write([$this->page('https://example.com/')], $this->outDir, 50000, null, $imageFiles);
+
+        $index = simplexml_load_file(end($files));
+        $locs = array_map('strval', iterator_to_array($index->xpath('//*[local-name()="loc"]'), false));
+        $this->assertSame([
+            'https://example.com/sitemap-1.xml.gz',
+            'https://example.com/sitemap-images-1.xml.gz',
+        ], $locs);
+
+        $images = simplexml_load_string($this->readGzip($imageFiles[0]));
+        $this->assertCount(1, $images->url);
+    }
+
+    public function testNoImageSitemapWithoutImages(): void
+    {
+        $this->assertSame([], ImageSitemapWriter::write([['url' => 'https://example.com/']], $this->outDir));
+    }
 }

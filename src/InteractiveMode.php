@@ -99,12 +99,6 @@ class InteractiveMode
             $this->config['delay'] = (int)$this->ask('Delay between requests (ms)', '0');
         }
 
-        // Caching
-        if ($this->askYesNo('Enable caching?', false)) {
-            $this->config['cacheEnabled'] = true;
-            $this->config['cacheTtl'] = (int)$this->ask('Cache TTL (seconds)', '3600');
-        }
-
         // Resume
         if ($this->askYesNo('Enable resume capability?', false)) {
             $this->config['resume'] = true;
@@ -152,7 +146,7 @@ class InteractiveMode
             echo "Enter exclude patterns (comma-separated, e.g., /admin/*,/test/*): ";
             $excludeInput = trim(fgets(STDIN));
             if (!empty($excludeInput)) {
-                $this->config['excludePatterns'] = array_map('trim', explode(',', $excludeInput));
+                $this->config['exclude'] = array_map('trim', explode(',', $excludeInput));
             }
         }
     }

@@ -14,6 +14,7 @@ class SitemapWriter
      * @param int $maxPerFile maximum URLs per sitemap file (<= 50,000 per spec)
      * @param string|null $publicBase public base URL used to build <loc> for sitemap files in the index;
      *                                defaults to the origin (scheme://host) of the first page
+     * @param string[] $additionalSitemaps other sitemap files in $outPath (e.g. image sitemaps) to list in the index
      * @return string[] list of generated file paths
      * @throws \InvalidArgumentException
      * @throws \RuntimeException
@@ -22,7 +23,8 @@ class SitemapWriter
         array $pages,
         string $outPath,
         int $maxPerFile = 50000,
-        ?string $publicBase = null
+        ?string $publicBase = null,
+        array $additionalSitemaps = []
     ): array {
         // Validate inputs
         if (empty($pages)) {
@@ -84,7 +86,7 @@ class SitemapWriter
 
         // Create sitemap index
         try {
-            $indexPath = self::writeSitemapIndex($files, $outPath, $publicBase);
+            $indexPath = self::writeSitemapIndex(array_merge($files, $additionalSitemaps), $outPath, $publicBase);
             $files[] = $indexPath;
         } catch (\Throwable $e) {
             throw new \RuntimeException("Failed to write sitemap index: " . $e->getMessage(), 0, $e);
@@ -159,11 +161,11 @@ class SitemapWriter
                 $xml->writeElement('lastmod', $page['lastmod']);
             }
 
-            // Optional: change frequency (you can add this field if needed)
-            // $xml->writeElement('changefreq', 'daily');
-
-            // Optional: priority (you can add this field if needed)
-            // $xml->writeElement('priority', '0.8');
+            // Optional: priority (0.0 - 1.0), e.g. from UrlFilter priority rules
+            if (isset($page['priority']) && is_numeric($page['priority'])) {
+                $priority = max(0.0, min(1.0, (float)$page['priority']));
+                $xml->writeElement('priority', number_format($priority, 1, '.', ''));
+            }
 
             $xml->endElement(); // url
         }

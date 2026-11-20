@@ -2,6 +2,8 @@
 
 namespace IProDev\Sitemap\Analyzer;
 
+use IProDev\Sitemap\Utils;
+
 class SeoAnalyzer
 {
     private array $issues = [];
@@ -206,14 +208,16 @@ class SeoAnalyzer
         $externalLinks = 0;
         $brokenLinks = 0;
 
-        $domain = parse_url($baseUrl, PHP_URL_HOST);
+        $domain = strtolower((string)parse_url($baseUrl, PHP_URL_HOST));
 
         foreach ($matches[1] as $link) {
-            if (empty($link) || $link === '#') {
+            if (empty($link) || $link[0] === '#' || preg_match('/^(mailto|tel|javascript):/i', $link)) {
                 continue;
             }
 
-            if (strpos($link, $domain) !== false || strpos($link, '/') === 0) {
+            // Relative links have no host and point to the same site
+            $host = parse_url($link, PHP_URL_HOST);
+            if (!is_string($host) || strtolower($host) === $domain) {
                 $internalLinks++;
             } else {
                 $externalLinks++;
@@ -264,9 +268,8 @@ class SeoAnalyzer
      */
     private function checkContentLength(string $html): void
     {
-        $text = strip_tags($html);
-        $text = preg_replace('/\s+/', ' ', $text);
-        $wordCount = str_word_count($text);
+        // str_word_count() only counts Latin words, so e.g. Persian pages always looked empty
+        $wordCount = Utils::countWords($this->visibleText($html));
 
         if ($wordCount < 300) {
             $this->warnings[] = [
@@ -282,8 +285,9 @@ class SeoAnalyzer
      */
     private function checkKeywordDensity(string $html): void
     {
-        $text = strtolower(strip_tags($html));
-        $words = str_word_count($text, 1);
+        $text = mb_strtolower($this->visibleText($html));
+        preg_match_all("/[\\p{L}\\p{N}][\\p{L}\\p{M}\\p{N}\\x{200C}\\x{200D}\\x{2019}'_-]*/u", $text, $matches);
+        $words = $matches[0];
 
         if (empty($words)) {
             return;
@@ -298,7 +302,7 @@ class SeoAnalyzer
         foreach ($topWords as $word => $count) {
             $density = ($count / $totalWords) * 100;
 
-            if ($density > 3 && strlen($word) > 4) { // Ignore common short words
+            if ($density > 3 && mb_strlen((string)$word) > 4) { // Ignore common short words
                 $pct = round($density, 2);
                 $this->recommendations[] = [
                     'type' => 'keyword_density',
@@ -347,7 +351,9 @@ class SeoAnalyzer
         // Check for compression
         $hasCompression = false;
         foreach ($headers as $header => $value) {
-            if (strtolower($header) === 'content-encoding' && stripos($value, 'gzip') !== false) {
+            // PSR-7 getHeaders() returns lists of values
+            $value = is_array($value) ? implode(', ', $value) : (string)$value;
+            if (strtolower($header) === 'content-encoding' && preg_match('/gzip|br|deflate|zstd/i', $value)) {
                 $hasCompression = true;
                 break;
             }
@@ -375,6 +381,17 @@ class SeoAnalyzer
                 'message' => 'No structured data found. Consider adding Schema.org markup'
             ];
         }
+    }
+
+    /**
+     * Text without scripts, styles and tags
+     */
+    private function visibleText(string $html): string
+    {
+        $html = preg_replace('#<(script|style|noscript|template)\b[^>]*>.*?</\1>#is', ' ', $html) ?? $html;
+        $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return preg_replace('/\s+/u', ' ', $text) ?? $text;
     }
 
     /**
