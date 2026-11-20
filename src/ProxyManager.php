@@ -93,6 +93,27 @@ class ProxyManager
     }
 
     /**
+     * All proxy URLs (with credentials embedded), e.g. for per-request rotation
+     *
+     * @return string[]
+     */
+    public function getProxyUrls(): array
+    {
+        return array_map(
+            fn(array $proxy) => self::buildProxyUrl($proxy['url'], $proxy['auth']),
+            $this->proxies
+        );
+    }
+
+    /**
+     * Whether proxies should be rotated per request
+     */
+    public function isRotating(): bool
+    {
+        return $this->rotateProxies;
+    }
+
+    /**
      * Build a proxy URL with optional "username:password" credentials
      */
     public static function buildProxyUrl(string $url, ?string $auth = null): string

@@ -30,7 +30,7 @@ class JavaScriptFetcher extends Fetcher
     /**
      * Fetch URL with optional JavaScript rendering
      */
-    public function get(string $url)
+    public function get(string $url): \Psr\Http\Message\ResponseInterface
     {
         // Check if URL needs JavaScript rendering
         if ($this->shouldRenderJavaScript($url)) {
@@ -44,7 +44,7 @@ class JavaScriptFetcher extends Fetcher
     /**
      * Fetch with JavaScript rendering
      */
-    private function fetchWithJavaScript(string $url)
+    private function fetchWithJavaScript(string $url): \Psr\Http\Message\ResponseInterface
     {
         if (!$this->browser) {
             throw new \RuntimeException("JavaScript rendering not enabled");
