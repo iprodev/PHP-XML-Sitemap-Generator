@@ -76,7 +76,7 @@
       "@phpunit"
     ],
     "phpunit": "phpunit --colors=always",
-    "test-coverage": "phpunit --coverage-html coverage --coverage-text",
+    "test-coverage": "phpunit --coverage-html coverage --coverage-text --coverage-clover coverage.xml",
     "lint": [
       "@phpcs"
     ],

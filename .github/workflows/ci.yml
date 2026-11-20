@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master, main, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master, main, develop ]
   release:
     types: [ created ]
 
@@ -108,7 +108,7 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: [test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
     
     steps:
     - name: Checkout code
@@ -129,15 +129,15 @@ jobs:
         context: .
         push: true
         tags: |
-          iprodev/PHP-XML-Sitemap-Generator:latest
-          iprodev/PHP-XML-Sitemap-Generator:${{ github.sha }}
-        cache-from: type=registry,ref=iprodev/PHP-XML-Sitemap-Generator:buildcache
-        cache-to: type=registry,ref=iprodev/PHP-XML-Sitemap-Generator:buildcache,mode=max
+          iprodev/php-xml-sitemap-generator:latest
+          iprodev/php-xml-sitemap-generator:${{ github.sha }}
+        cache-from: type=registry,ref=iprodev/php-xml-sitemap-generator:buildcache
+        cache-to: type=registry,ref=iprodev/php-xml-sitemap-generator:buildcache,mode=max
 
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [test, static-analysis, build-docker]
+    needs: [test, static-analysis]
     if: github.event_name == 'release'
     
     steps:
