@@ -148,7 +148,7 @@ HTML;
         if (!empty($changes['new'])) {
             $html .= '<div class="change-section"><h2>New URLs</h2><ul class="url-list">';
             foreach ($changes['new'] as $url) {
-                $html .= "<li class='new'>{$url['url']}</li>";
+                $html .= "<li class='new'>" . self::escapeHtml((string)$url['url']) . '</li>';
             }
             $html .= '</ul></div>';
         }
@@ -156,7 +156,7 @@ HTML;
         if (!empty($changes['modified'])) {
             $html .= '<div class="change-section"><h2>Modified URLs</h2><ul class="url-list">';
             foreach ($changes['modified'] as $url) {
-                $html .= "<li class='modified'>{$url['url']}</li>";
+                $html .= "<li class='modified'>" . self::escapeHtml((string)$url['url']) . '</li>';
             }
             $html .= '</ul></div>';
         }
@@ -164,7 +164,7 @@ HTML;
         if (!empty($changes['deleted'])) {
             $html .= '<div class="change-section"><h2>Deleted URLs</h2><ul class="url-list">';
             foreach ($changes['deleted'] as $url) {
-                $html .= "<li class='deleted'>{$url['url']}</li>";
+                $html .= "<li class='deleted'>" . self::escapeHtml((string)$url['url']) . '</li>';
             }
             $html .= '</ul></div>';
         }
@@ -172,6 +172,15 @@ HTML;
         $html .= '</div></body></html>';
 
         return $html;
+    }
+
+    /**
+     * Escape text for HTML output. URLs come from the crawled site and must be
+     * treated as untrusted.
+     */
+    private static function escapeHtml(string $text): string
+    {
+        return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
     }
 
     /**

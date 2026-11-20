@@ -69,7 +69,7 @@ class WebhookNotifier
     {
         $this->notify('crawl.started', [
             'url' => $url,
-            'config' => $config
+            'config' => Utils::redactConfig($config)
         ]);
     }
 

@@ -104,7 +104,7 @@ Basic Options:
   --concurrency=<N>        Concurrent requests (default: 10, max: 100)
   --max-pages=<N>          Maximum pages to crawl (default: 50000)
   --max-depth=<N>          Maximum link depth (default: 5)
-  --public-base=<URL>      Public base URL for sitemap index
+  --public-base=<URL>      Public base URL for sitemap index (default: origin of --url)
 
 Advanced Options:
   --rate-limit=<N>         Requests per minute (default: unlimited)
@@ -301,7 +301,7 @@ function showConfig(array $config): void {
         echo "  JavaScript:  Rendering enabled\n";
     }
     if ($config['proxy']) {
-        echo "  Proxy:       {$config['proxy']}\n";
+        echo "  Proxy:       " . Utils::redactUrl($config['proxy']) . "\n";
     }
     
     echo str_repeat('=', 70) . "\n\n";
@@ -334,12 +334,11 @@ try {
     // Setup proxy
     $proxyManager = null;
     if ($config['proxy'] || $config['proxyFile']) {
-        $proxyManager = new ProxyManager([], $config['rotateProxies']);
+        $proxyManager = $config['proxyFile']
+            ? ProxyManager::loadFromFile($config['proxyFile'], $config['rotateProxies'])
+            : new ProxyManager([], $config['rotateProxies']);
         if ($config['proxy']) {
             $proxyManager->addProxy($config['proxy']);
-        }
-        if ($config['proxyFile']) {
-            $proxyManager = ProxyManager::loadFromFile($config['proxyFile']);
         }
         $logger->info("Proxy configured", ['count' => $proxyManager->count()]);
     }
@@ -384,6 +383,12 @@ try {
         'concurrency' => $config['concurrency'],
         'timeout' => 15
     ];
+
+    // The proxy must be part of the options *before* the fetcher is created,
+    // otherwise requests silently go out without it.
+    if ($proxyManager && ($proxyConfig = $proxyManager->getGuzzleProxyConfig()) !== null) {
+        $fetcherOptions = array_merge($fetcherOptions, $proxyConfig);
+    }
     
     if ($config['enableJavaScript']) {
         $fetcherOptions['enable_javascript'] = true;
@@ -392,10 +397,6 @@ try {
         $fetcher = new JavaScriptFetcher($fetcherOptions, $logger);
     } else {
         $fetcher = new Fetcher($fetcherOptions, $logger);
-    }
-    
-    if ($proxyManager && $proxyManager->count() > 0) {
-        $fetcherOptions = array_merge($fetcherOptions, $proxyManager->getGuzzleProxyConfig());
     }
     
     // Load robots.txt

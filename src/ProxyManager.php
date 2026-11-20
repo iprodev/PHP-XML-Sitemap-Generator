@@ -74,7 +74,12 @@ class ProxyManager
     }
 
     /**
-     * Get Guzzle proxy configuration
+     * Get Guzzle proxy configuration.
+     *
+     * Proxy credentials are embedded in the proxy URL (http://user:pass@host:port),
+     * which is how cURL and Guzzle authenticate against the proxy. They must not
+     * be passed as Guzzle's "auth" option: that sends an Authorization header to
+     * every crawled website instead of to the proxy.
      */
     public function getGuzzleProxyConfig(): ?array
     {
@@ -84,13 +89,31 @@ class ProxyManager
             return null;
         }
 
-        $config = ['proxy' => $proxy['url']];
+        return ['proxy' => self::buildProxyUrl($proxy['url'], $proxy['auth'])];
+    }
 
-        if ($proxy['auth']) {
-            $config['auth'] = explode(':', $proxy['auth'], 2);
+    /**
+     * Build a proxy URL with optional "username:password" credentials
+     */
+    public static function buildProxyUrl(string $url, ?string $auth = null): string
+    {
+        $url = trim($url);
+        if (!preg_match('#^[a-z][a-z0-9+.\-]*://#i', $url)) {
+            $url = 'http://' . $url;
         }
 
-        return $config;
+        if ($auth === null || $auth === '') {
+            return $url;
+        }
+
+        $parts = explode(':', $auth, 2);
+        $userInfo = rawurlencode($parts[0]);
+        if (isset($parts[1])) {
+            $userInfo .= ':' . rawurlencode($parts[1]);
+        }
+
+        // Replace any credentials already present in the URL
+        return preg_replace('#^([a-z][a-z0-9+.\-]*://)(?:[^/]*@)?#i', '${1}' . $userInfo . '@', $url, 1) ?? $url;
     }
 
     /**
@@ -260,7 +283,7 @@ class ProxyManager
     /**
      * Load proxies from file
      */
-    public static function loadFromFile(string $filename): self
+    public static function loadFromFile(string $filename, bool $rotateProxies = false): self
     {
         if (!file_exists($filename)) {
             throw new \RuntimeException("Proxy file not found: {$filename}");
@@ -272,8 +295,8 @@ class ProxyManager
         foreach ($lines as $line) {
             $line = trim($line);
 
-            // Skip comments
-            if (strpos($line, '#') === 0) {
+            // Skip blank lines and comments
+            if ($line === '' || strpos($line, '#') === 0) {
                 continue;
             }
 
@@ -286,7 +309,7 @@ class ProxyManager
             }
         }
 
-        return new self($proxies);
+        return new self($proxies, $rotateProxies);
     }
 
     /**
