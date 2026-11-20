@@ -2,6 +2,13 @@
 
 namespace IProDev\Sitemap\Cache;
 
+/**
+ * File based cache.
+ *
+ * Entries are stored as JSON instead of PHP serialization: reading a cache
+ * file must never be able to instantiate PHP objects, even if someone else
+ * can write to the cache directory.
+ */
 class FileCache implements CacheInterface
 {
     private string $cacheDir;
@@ -25,9 +32,9 @@ class FileCache implements CacheInterface
             return null;
         }
 
-        $data = unserialize(file_get_contents($file));
+        $data = $this->readEntry($file);
 
-        if ($data['expires'] < time()) {
+        if ($data === null || $data['expires'] < time()) {
             $this->delete($key);
             return null;
         }
@@ -35,7 +42,7 @@ class FileCache implements CacheInterface
         return $data['value'];
     }
 
-    public function set(string $key, mixed $value, int $ttl = null): bool
+    public function set(string $key, mixed $value, ?int $ttl = null): bool
     {
         $ttl = $ttl ?? $this->defaultTtl;
         $file = $this->getFilePath($key);
@@ -47,7 +54,14 @@ class FileCache implements CacheInterface
             'created' => time()
         ];
 
-        return file_put_contents($file, serialize($data)) !== false;
+        try {
+            $encoded = json_encode($data, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION);
+        } catch (\JsonException $e) {
+            // Value is not JSON-serializable (e.g. an object or a resource)
+            return false;
+        }
+
+        return file_put_contents($file, $encoded, LOCK_EX) !== false;
     }
 
     public function has(string $key): bool
@@ -68,7 +82,7 @@ class FileCache implements CacheInterface
 
     public function clear(): bool
     {
-        $files = glob($this->cacheDir . '/*.cache');
+        $files = glob($this->cacheDir . '/*.cache') ?: [];
 
         foreach ($files as $file) {
             if (is_file($file)) {
@@ -90,7 +104,7 @@ class FileCache implements CacheInterface
         return $result;
     }
 
-    public function setMultiple(array $items, int $ttl = null): bool
+    public function setMultiple(array $items, ?int $ttl = null): bool
     {
         foreach ($items as $key => $value) {
             if (!$this->set($key, $value, $ttl)) {
@@ -102,11 +116,11 @@ class FileCache implements CacheInterface
     }
 
     /**
-     * Clean expired cache entries
+     * Clean expired (and corrupt) cache entries
      */
     public function cleanup(): int
     {
-        $files = glob($this->cacheDir . '/*.cache');
+        $files = glob($this->cacheDir . '/*.cache') ?: [];
         $deleted = 0;
 
         foreach ($files as $file) {
@@ -114,9 +128,9 @@ class FileCache implements CacheInterface
                 continue;
             }
 
-            $data = unserialize(file_get_contents($file));
+            $data = $this->readEntry($file);
 
-            if ($data['expires'] < time()) {
+            if ($data === null || $data['expires'] < time()) {
                 unlink($file);
                 $deleted++;
             }
@@ -130,7 +144,7 @@ class FileCache implements CacheInterface
      */
     public function getStats(): array
     {
-        $files = glob($this->cacheDir . '/*.cache');
+        $files = glob($this->cacheDir . '/*.cache') ?: [];
         $totalSize = 0;
         $expired = 0;
         $valid = 0;
@@ -141,9 +155,9 @@ class FileCache implements CacheInterface
             }
 
             $totalSize += filesize($file);
-            $data = unserialize(file_get_contents($file));
+            $data = $this->readEntry($file);
 
-            if ($data['expires'] < time()) {
+            if ($data === null || $data['expires'] < time()) {
                 $expired++;
             } else {
                 $valid++;
@@ -157,6 +171,31 @@ class FileCache implements CacheInterface
             'total_size' => $totalSize,
             'cache_dir' => $this->cacheDir
         ];
+    }
+
+    /**
+     * Read and validate a cache entry.
+     *
+     * @return array{value: mixed, expires: int}|null null if the entry is missing or corrupt
+     */
+    private function readEntry(string $file): ?array
+    {
+        $raw = @file_get_contents($file);
+        if ($raw === false || $raw === '') {
+            return null;
+        }
+
+        try {
+            $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            return null;
+        }
+
+        if (!is_array($data) || !array_key_exists('value', $data) || !is_int($data['expires'] ?? null)) {
+            return null;
+        }
+
+        return $data;
     }
 
     private function getFilePath(string $key): string
