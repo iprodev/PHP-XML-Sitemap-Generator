@@ -150,7 +150,8 @@ class SitemapWriterTest extends TestCase
         $files = SitemapWriter::write([$this->page('https://example.com/')], $this->outDir, 50000, null, $imageFiles);
 
         $index = simplexml_load_file(end($files));
-        $locs = array_map('strval', iterator_to_array($index->xpath('//*[local-name()="loc"]'), false));
+        // xpath() returns an array; iterator_to_array() only accepts arrays from PHP 8.2 on
+        $locs = array_map('strval', $index->xpath('//*[local-name()="loc"]') ?: []);
         $this->assertSame([
             'https://example.com/sitemap-1.xml.gz',
             'https://example.com/sitemap-images-1.xml.gz',
