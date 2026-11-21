@@ -161,6 +161,199 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: [test]
+    # Pull requests build and smoke-test the image; pushes to the default branch also publish it
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'))
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      if: github.event_name == 'push'
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build (and push from the default branch)
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: ${{ github.event_name == 'push' }}
+        load: ${{ github.event_name == 'pull_request' }}
+        tags: |
+          iprodev/php-xml-sitemap-generator:latest
+          iprodev/php-xml-sitemap-generator:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Smoke test
+      if: github.event_name == 'pull_request'
+      run: |
+        docker run --rm iprodev/php-xml-sitemap-generator:${{ github.sha }} --help | grep -q "Usage:"
+        test "$(docker run --rm --entrypoint id iprodev/php-xml-sitemap-generator:${{ github.sha }} -un)" = "sitemap"
+        docker run --rm --entrypoint php iprodev/php-xml-sitemap-generator:${{ github.sha }} -m \
+          | grep -E "^(pdo_mysql|pdo_pgsql|pdo_sqlite|pcntl|curl|dom|mbstring|xmlwriter)$" | wc -l | grep -qx 8
+
+  release:
+    types: [ created ]
+
+jobs:
+  test:
+    name: Test PHP ${{ matrix.php-version }}
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.0', '8.1', '8.2', '8.3']
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: curl, xml, mbstring, zip, pdo, sqlite, redis
+        coverage: xdebug
+        tools: composer:v2
+        
+    - name: Validate composer.json
+      run: composer validate --strict
+      
+    - name: Cache Composer packages
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-${{ matrix.php-version }}-
+          
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-interaction
+      
+    - name: Run tests
+      run: composer test
+      
+    - name: Run code style check
+      run: composer lint
+      
+    - name: Generate coverage report
+      if: matrix.php-version == '8.2'
+      run: composer test-coverage
+      
+    - name: Upload coverage to Codecov
+      if: matrix.php-version == '8.2'
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  database:
+    name: Database tests (MySQL, PostgreSQL)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root-test-password
+          MYSQL_DATABASE: sitemap
+          MYSQL_USER: sitemap
+          MYSQL_PASSWORD: test-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: sitemap
+          POSTGRES_USER: sitemap
+          POSTGRES_PASSWORD: test-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U sitemap"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+        extensions: curl, xml, mbstring, pdo, pdo_sqlite, pdo_mysql, pdo_pgsql
+        tools: composer:v2
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-interaction
+
+    - name: Run database tests
+      env:
+        SITEMAP_TEST_MYSQL_DSN: mysql:host=127.0.0.1;port=3306;dbname=sitemap
+        SITEMAP_TEST_MYSQL_USER: sitemap
+        SITEMAP_TEST_MYSQL_PASSWORD: test-password
+        SITEMAP_TEST_PGSQL_DSN: pgsql:host=127.0.0.1;port=5432;dbname=sitemap
+        SITEMAP_TEST_PGSQL_USER: sitemap
+        SITEMAP_TEST_PGSQL_PASSWORD: test-password
+      run: vendor/bin/phpunit tests/DatabaseTest.php
+
+  static-analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+        extensions: curl, xml, mbstring, zip
+        tools: composer:v2
+        
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress
+      
+    - name: Run PHPStan
+      run: composer analyze
+      continue-on-error: true
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+        tools: composer:v2
+        
+    - name: Check for security vulnerabilities
+      run: |
+        composer require --dev enlightn/security-checker
+        vendor/bin/security-checker security:check composer.lock
+      continue-on-error: true
+
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [test]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
     
     steps:

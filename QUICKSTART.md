@@ -127,8 +127,9 @@ php bin/sitemap \
 
 ```bash
 docker run --rm \
-  -v $(pwd)/output:/app/output \
-  iprodev/sitemap-generator-pro:latest \
+  -v "$(pwd):/data" \
+  --user "$(id -u):$(id -g)" \
+  iprodev/php-xml-sitemap-generator:latest \
   --url=https://example.com
 ```
 

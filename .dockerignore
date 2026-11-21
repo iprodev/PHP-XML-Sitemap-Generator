@@ -1,0 +1,27 @@
+# Keep secrets, local data and development files out of the build context
+.git
+.github
+.env
+.env.*
+!.env.example
+vendor
+tests
+coverage
+coverage.xml
+output
+reports
+cache
+logs
+sitemaps
+data
+*.db
+*.sqlite
+checkpoint.json
+checkpoint.json.tmp
+schedules.json
+*.log
+.phpunit.result.cache
+.idea
+.vscode
+.claude
+docker-compose.yml

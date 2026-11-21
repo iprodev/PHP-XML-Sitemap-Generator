@@ -605,10 +605,11 @@ docker build -t sitemap-generator-pro .
 
 # Run
 docker run --rm \
-  -v $(pwd)/sitemaps:/app/output \
+  -v "$(pwd):/data" \
+  --user "$(id -u):$(id -g)" \
   sitemap-generator-pro \
   --url=https://example.com \
-  --out=/app/output
+  --out=./sitemaps
 ```
 
 ---
