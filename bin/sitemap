@@ -30,6 +30,7 @@ use IProDev\Sitemap\Crawler;
 use IProDev\Sitemap\SitemapWriter;
 use IProDev\Sitemap\RobotsTxt;
 use IProDev\Sitemap\Utils;
+use IProDev\Sitemap\Version;
 use IProDev\Sitemap\InteractiveMode;
 use IProDev\Sitemap\Database\Database;
 use IProDev\Sitemap\ChangeDetector;
@@ -66,7 +67,7 @@ const FLAG_OPTIONS = [
     'resume', 'block-private-ips', 'db-enabled', 'detect-changes', 'only-changed',
     'seo-analysis', 'check-quality', 'find-duplicates', 'find-broken-links',
     'image-sitemap', 'video-sitemap', 'news-sitemap', 'rotate-proxies',
-    'notify-on-complete', 'notify-on-error', 'interactive', 'verbose', 'help',
+    'notify-on-complete', 'notify-on-error', 'interactive', 'verbose', 'help', 'version',
     // No effect, accepted for compatibility
     'cache-enabled', 'enable-javascript',
 ];
@@ -183,6 +184,7 @@ Other:
   --interactive, -i          Interactive configuration mode
   --verbose, -v              Enable verbose output
   --help, -h                 Show this help message
+  --version                  Show the version
 
 Not functional yet (accepted, but have no effect):
   --enable-javascript, --chrome-path, --wait-for-ajax
@@ -321,6 +323,11 @@ function parseArguments(): array {
         exit(0);
     }
 
+    if (isset($options['version'])) {
+        echo 'PHP XML Sitemap Generator ' . Version::NUMBER . PHP_EOL;
+        exit(0);
+    }
+
     checkUnknownOptions($argv);
 
     // Interactive mode
@@ -439,7 +446,7 @@ function warnUnsupported(array $config, ConsoleLogger $logger): void {
  */
 function showConfig(array $config): void {
     echo "\n" . str_repeat('=', 70) . "\n";
-    echo "  PHP XML Sitemap Generator\n";
+    echo "  PHP XML Sitemap Generator " . Version::NUMBER . "\n";
     echo str_repeat('=', 70) . "\n";
     echo "Configuration:\n";
     echo "  URL:         " . Utils::redactUrl($config['url']) . "\n";

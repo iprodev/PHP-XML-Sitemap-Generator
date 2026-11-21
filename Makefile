@@ -149,7 +149,7 @@ cache-clear: ## Clear cache
 
 version: ## Show version information
 	@echo "$(BLUE)PHP XML Sitemap Generator Pro$(NC)"
-	@echo "Version: $(GREEN)2.0.0$(NC)"
+	@echo "Version: $(GREEN)$(shell php bin/sitemap --version | awk '{print $$NF}')$(NC)"
 	@php --version | head -n 1
 
 stats: ## Show project statistics

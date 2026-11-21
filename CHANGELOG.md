@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.1.0] - 2026-11-21
 
 ### ⚠️ Behaviour changes
 
@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MySQL/MariaDB and PostgreSQL support for database storage; CI tests it against MySQL 8 and PostgreSQL 16.
 - Real cron expressions in the scheduler (lists, ranges, steps, names).
 - `Crawler` hooks: URL filter, rate limiter, checkpoints, page processors, `getErrors()`. New `UrlNormalizer`, `Parser::parseDocument()`, `Utils::countWords()`.
+- `bin/sitemap --version` and `IProDev\Sitemap\Version::NUMBER`; the crawler's User-Agent carries the version.
 
 ### 🔒 Security
 

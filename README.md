@@ -5,12 +5,25 @@ A professional, production-ready PHP sitemap generator by **iProDev (Hemn Chawro
 [![CI/CD Pipeline](https://github.com/iprodev/PHP-XML-Sitemap-Generator/actions/workflows/ci.yml/badge.svg)](https://github.com/iprodev/PHP-XML-Sitemap-Generator/actions/workflows/ci.yml)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.0-blue.svg)](https://php.net)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)
-[![Version](https://img.shields.io/badge/version-3.0.0-orange.svg)](CHANGELOG.md)
-[![codecov](https://codecov.io/gh/iprodev/PHP-XML-Sitemap-Generator/branch/main/graph/badge.svg)](https://codecov.io/gh/iprodev/PHP-XML-Sitemap-Generator)
+[![Version](https://img.shields.io/badge/version-3.1.0-orange.svg)](CHANGELOG.md)
+[![codecov](https://codecov.io/gh/iprodev/PHP-XML-Sitemap-Generator/branch/master/graph/badge.svg)](https://codecov.io/gh/iprodev/PHP-XML-Sitemap-Generator)
 
 --- 
 
-## 🚀 What's New in v3.0
+## 🚀 What's New in v3.1
+
+- 🔒 **Security fixes**: no PHP deserialization in caches, no shell in the scheduler, credentials redacted from webhooks/database/logs, hardened docker-compose
+- 🗺️ **Correct sitemaps**: URLs with `&` are no longer double-escaped, absolute index URLs, only indexable and canonical pages (redirects, `noindex` and duplicates are left out)
+- 🤖 **robots.txt per RFC 9309** (groups, longest match)
+- ⚙️ **CLI options that work**: rate limiting, resume with Ctrl+C, filters while crawling, image/video/news sitemaps, JSON reports (SEO, quality, duplicates, broken links)
+- 🛡️ **Safer crawling**: response size limit and optional blocking of private/internal addresses
+- 🗄️ **MySQL and PostgreSQL** database storage, working change detection
+- ⏰ **Scheduler**: real cron expressions, no overlapping runs
+- 🐳 **Smaller, non-root Docker image**
+
+JavaScript rendering and the `--cache-*` CLI options are not functional yet. See the [changelog](CHANGELOG.md) for details and behaviour changes.
+
+## What's New in v3.0
 
 - ✨ **Database Storage** with change detection and historical tracking
 - 🔄 **Resume Capability** with checkpoint system

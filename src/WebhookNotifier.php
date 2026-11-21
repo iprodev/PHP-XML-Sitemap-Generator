@@ -123,7 +123,7 @@ class WebhookNotifier
             'json' => $payload,
             'headers' => [
                 'Content-Type' => 'application/json',
-                'User-Agent' => 'SitemapGenerator-Webhook/1.0'
+                'User-Agent' => 'SitemapGenerator-Webhook/' . Version::NUMBER
             ]
         ]);
 
