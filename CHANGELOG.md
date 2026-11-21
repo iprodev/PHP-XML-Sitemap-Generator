@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ⚠️ Behaviour changes
+
+- The sitemap only lists indexable, canonical pages: final URLs after redirects, no `noindex` pages, and canonical URLs instead of their duplicates. `rel="nofollow"` links and pages with `nofollow` are not followed.
+- `--exclude` patterns are applied while crawling (excluded URLs are never requested). `--include` still only filters the sitemap.
+- Checkpoints are saved by default every 1000 requests and on Ctrl+C (`--checkpoint-interval=0` turns this off).
+- Responses larger than 10 MB are skipped (`--max-response-size`).
+- `--cache-*` and the JavaScript rendering options have no effect and print a warning; they never worked.
+- Unknown CLI options are rejected. Value options also accept `--name value`.
+- The Docker image runs as a non-root user with `/data` as working directory.
+
+### ✨ Added
+
+- Working `--rate-limit`, `--delay`, `--resume`, `--rotate-proxies`, `--only-changed`, `--image-sitemap`, `--video-sitemap` and `--news-sitemap` (all were no-ops).
+- JSON reports for `--seo-analysis`, `--check-quality`, `--find-duplicates` and `--find-broken-links` (with the page linking to each broken URL) in `--report-dir`.
+- `--block-private-ips` (SSRF protection that also checks redirects), `--max-response-size`, `--checkpoint-file`, `--db-user` (password from `$DB_PASSWORD`), `--report-dir` and `--news-publication`.
+- MySQL/MariaDB and PostgreSQL support for database storage; CI tests it against MySQL 8 and PostgreSQL 16.
+- Real cron expressions in the scheduler (lists, ranges, steps, names).
+- `Crawler` hooks: URL filter, rate limiter, checkpoints, page processors, `getErrors()`. New `UrlNormalizer`, `Parser::parseDocument()`, `Utils::countWords()`.
+
 ### 🔒 Security
 
 - **Cache:** `FileCache` and `RedisCache` store values as JSON instead of PHP `serialize()`, so a tampered cache file or Redis key can no longer instantiate PHP objects (insecure deserialization). Cached values must now be JSON-serializable; `set()` returns `false` otherwise. Entries written by older versions are treated as cache misses.
@@ -18,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🐛 Fixed
 
+- **Crawler:** URLs are normalized (host case, default port, fragments, tracking parameters) and fetched at most once (each URL used to be re-queued and re-fetched, with an O(n²) queue scan). Pages are converted to UTF-8 from their declared charset and parsed once. Word counts work for Persian and other non-Latin scripts. `fetchMany()` no longer attributes responses to the wrong URL when invalid URLs are skipped.
+- **Database:** crawler data (status, last-modified, content hash) is actually stored; URLs are saved in one transaction; modified pages are detected; two crawls in the same second no longer fail. Old SQLite databases are upgraded.
+- **Scheduler:** a slow or failing crawl is no longer started again every minute; only one scheduler process runs at a time; `*/5 * * * *` and other expressions no longer fall back to once a day.
+- **Interactive mode** no longer crashes with a `TypeError`.
+- **Docker:** the image build installed pecl redis without build tools and many unused extensions; it is now multi-stage, smaller and pinned.
 - **Sitemap XML:** URLs and texts were escaped twice (`&` became `&amp;amp;`) in the URL, image, video and news sitemaps.
 - **Sitemap index:** `<loc>` entries are always absolute; without `--public-base` the origin of the crawled site is used. `<lastmod>` now carries the real UTC offset instead of a hard-coded `+00:00`.
 - **robots.txt** follows RFC 9309: consecutive `User-agent` lines share one group, the most specific (longest) rule wins with `Allow` winning ties, and only the groups for this crawler (`php-sitemap-generator`) or, failing that, `*` apply. Added `RobotsTxt::fromString()`.

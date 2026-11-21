@@ -72,6 +72,21 @@ class UrlFilter
     }
 
     /**
+     * Whether a URL matches one of the exclude patterns.
+     * The crawler does not fetch excluded URLs at all.
+     */
+    public function isExcluded(string $url): bool
+    {
+        foreach ($this->excludePatterns as $pattern) {
+            if ($this->matchPattern($url, $pattern)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Get priority for URL
      */
     public function getPriority(string $url): float
@@ -107,7 +122,10 @@ class UrlFilter
                 continue;
             }
 
-            $page['priority'] = $this->getPriority($url);
+            // Only set a priority when rules are configured; otherwise leave it out of the sitemap
+            if (!empty($this->priorityRules)) {
+                $page['priority'] = $this->getPriority($url);
+            }
             $filtered[] = $page;
         }
 

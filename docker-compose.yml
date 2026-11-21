@@ -14,12 +14,12 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: sitemap-generator
+    # The project directory is the working directory (/data): output, reports,
+    # checkpoints and SQLite databases end up there. Run as your own user so the
+    # files stay yours (export UID/GID if yours is not 1000).
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
-      - ./:/app
-      - ./output:/app/output
-      - ./cache:/app/cache
-    environment:
-      - PHP_MEMORY_LIMIT=512M
+      - ./:/data
     networks:
       - sitemap-network
 

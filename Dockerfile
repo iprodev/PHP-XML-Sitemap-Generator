@@ -1,78 +1,59 @@
-FROM php:8.2-cli-alpine
+# syntax=docker/dockerfile:1
 
-LABEL maintainer="iprodev"
-LABEL description="PHP XML Sitemap Generator Pro"
+ARG PHP_VERSION=8.3
 
-# Install dependencies
-RUN apk add --no-cache \
-    curl \
-    git \
-    unzip \
-    libzip-dev \
-    libxml2-dev \
-    libpng-dev \
-    libjpeg-turbo-dev \
-    freetype-dev \
-    zlib-dev \
-    icu-dev \
-    chromium \
-    chromium-chromedriver \
-    sqlite \
-    mysql-client \
-    postgresql-client
+# ---------------------------------------------------------------------------
+# Dependencies: installed in a separate stage so Composer and its cache are not
+# part of the final image
+# ---------------------------------------------------------------------------
+FROM composer:2.8 AS vendor
 
-# Install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
-        pdo \
-        pdo_mysql \
-        pdo_pgsql \
-        pdo_sqlite \
-        zip \
-        xml \
-        mbstring \
-        gd \
-        intl \
-        pcntl \
-        opcache
-
-# Install PECL extensions
-RUN pecl install redis \
-    && docker-php-ext-enable redis
-
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Set working directory
 WORKDIR /app
+COPY composer.json composer.lock* ./
+# Platform requirements are checked against the runtime image below, not this one
+RUN composer install --no-dev --no-interaction --no-progress --prefer-dist \
+        --no-scripts --no-autoloader --ignore-platform-reqs
+COPY src/ src/
+RUN composer dump-autoload --no-dev --optimize --classmap-authoritative
 
-# Copy application files
-COPY . /app
+# ---------------------------------------------------------------------------
+# Runtime
+# ---------------------------------------------------------------------------
+FROM php:${PHP_VERSION}-cli-alpine
 
-# Install dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+LABEL org.opencontainers.image.title="PHP XML Sitemap Generator" \
+      org.opencontainers.image.source="https://github.com/iprodev/PHP-XML-Sitemap-Generator" \
+      org.opencontainers.image.licenses="MIT"
 
-# Create necessary directories
-RUN mkdir -p /app/output /app/cache /app/logs \
-    && chmod -R 777 /app/output /app/cache /app/logs
+# JavaScript rendering is not functional yet; Chromium is only installed on request
+ARG INSTALL_CHROMIUM=false
 
-# Configure PHP
-RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory.ini \
-    && echo "max_execution_time = 0" > /usr/local/etc/php/conf.d/execution.ini \
-    && echo "opcache.enable=1" > /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.memory_consumption=128" >> /usr/local/etc/php/conf.d/opcache.ini
+# curl, dom, mbstring, pdo_sqlite, xml, xmlwriter and zlib are part of the base image;
+# add the MySQL/PostgreSQL drivers and pcntl (Ctrl+C saves a checkpoint)
+RUN set -eux; \
+    apk add --no-cache libpq; \
+    apk add --no-cache --virtual .build-deps $PHPIZE_DEPS libpq-dev; \
+    docker-php-ext-install -j"$(nproc)" pdo_mysql pdo_pgsql pcntl; \
+    apk del .build-deps; \
+    if [ "$INSTALL_CHROMIUM" = "true" ]; then apk add --no-cache chromium; fi; \
+    echo "memory_limit = 512M" > "$PHP_INI_DIR/conf.d/sitemap.ini"
 
-# Set environment variables
-ENV CHROME_PATH=/usr/bin/chromium-browser
+# Unprivileged user; /data is its working directory for output, reports,
+# checkpoints and SQLite databases (mount a volume there)
+RUN addgroup -S sitemap && adduser -S -G sitemap -H -h /data sitemap \
+    && mkdir -p /data && chown sitemap:sitemap /data
+
+WORKDIR /app
+COPY --from=vendor /app/vendor/ vendor/
+COPY composer.json ./
+COPY src/ src/
+COPY bin/ bin/
+RUN chmod 0755 bin/sitemap bin/scheduler
+
 ENV PATH="/app/bin:${PATH}"
 
-# Make bin files executable
-RUN chmod +x /app/bin/sitemap /app/bin/scheduler
+USER sitemap
+WORKDIR /data
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD php -v || exit 1
-
-# Default command
 ENTRYPOINT ["php", "/app/bin/sitemap"]
 CMD ["--help"]

@@ -18,28 +18,20 @@ class ChangeDetector
      */
     public function detectChanges(int $oldCrawlId, int $newCrawlId): array
     {
-        return [
-            'new' => $this->db->getNewUrls($oldCrawlId, $newCrawlId),
-            'modified' => $this->db->getChangedUrls($oldCrawlId, $newCrawlId),
-            'deleted' => $this->db->getDeletedUrls($oldCrawlId, $newCrawlId),
-            'summary' => $this->getChangeSummary($oldCrawlId, $newCrawlId)
-        ];
-    }
-
-    /**
-     * Get change summary
-     */
-    private function getChangeSummary(int $oldCrawlId, int $newCrawlId): array
-    {
-        $new = count($this->db->getNewUrls($oldCrawlId, $newCrawlId));
-        $modified = count($this->db->getChangedUrls($oldCrawlId, $newCrawlId));
-        $deleted = count($this->db->getDeletedUrls($oldCrawlId, $newCrawlId));
+        $new = $this->db->getNewUrls($oldCrawlId, $newCrawlId);
+        $modified = $this->db->getChangedUrls($oldCrawlId, $newCrawlId);
+        $deleted = $this->db->getDeletedUrls($oldCrawlId, $newCrawlId);
 
         return [
-            'new_count' => $new,
-            'modified_count' => $modified,
-            'deleted_count' => $deleted,
-            'total_changes' => $new + $modified + $deleted
+            'new' => $new,
+            'modified' => $modified,
+            'deleted' => $deleted,
+            'summary' => [
+                'new_count' => count($new),
+                'modified_count' => count($modified),
+                'deleted_count' => count($deleted),
+                'total_changes' => count($new) + count($modified) + count($deleted)
+            ]
         ];
     }
 

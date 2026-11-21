@@ -41,11 +41,13 @@ class ContentQualityChecker
         $broken = [];
 
         foreach ($pages as $page) {
-            if (isset($page['status_code']) && $page['status_code'] >= 400) {
+            // Crawler records use "status", database rows "status_code"
+            $status = $page['status_code'] ?? $page['status'] ?? null;
+            if (is_numeric($status) && (int)$status >= 400) {
                 $broken[] = [
                     'url' => $page['url'],
-                    'status_code' => $page['status_code'],
-                    'error' => $this->getErrorMessage($page['status_code'])
+                    'status_code' => (int)$status,
+                    'error' => $this->getErrorMessage((int)$status)
                 ];
             }
         }
@@ -167,52 +169,68 @@ class ContentQualityChecker
      */
     public function generateReport(array $pages): array
     {
+        $findings = $this->collectFindings($pages);
+
         return [
             'total_pages' => count($pages),
             'duplicates' => [
-                'count' => count($this->findDuplicates($pages)),
-                'details' => $this->findDuplicates($pages)
+                'count' => count($findings['duplicates']),
+                'details' => $findings['duplicates']
             ],
             'broken_links' => [
-                'count' => count($this->findBrokenLinks($pages)),
-                'details' => $this->findBrokenLinks($pages)
+                'count' => count($findings['broken']),
+                'details' => $findings['broken']
             ],
             'thin_content' => [
-                'count' => count($this->findThinContent($pages)),
-                'details' => $this->findThinContent($pages)
+                'count' => count($findings['thin']),
+                'details' => $findings['thin']
             ],
             'missing_meta' => [
-                'descriptions' => count($this->findMissingMetaDescriptions($pages)),
-                'titles' => count($this->findMissingTitles($pages))
+                'descriptions' => count($findings['missing_descriptions']),
+                'titles' => count($findings['missing_titles'])
             ],
             'performance' => [
-                'slow_pages' => count($this->findSlowPages($pages)),
-                'large_pages' => count($this->findLargePages($pages))
+                'slow_pages' => count($findings['slow']),
+                'large_pages' => count($findings['large'])
             ],
-            'noindex_pages' => count($this->findNoindexPages($pages)),
-            'quality_score' => $this->calculateQualityScore($pages)
+            'noindex_pages' => count($findings['noindex']),
+            'quality_score' => $this->scoreFindings(count($pages), $findings)
         ];
     }
 
     /**
-     * Calculate overall quality score
+     * Run every check once
      */
-    private function calculateQualityScore(array $pages): int
+    private function collectFindings(array $pages): array
     {
-        if (empty($pages)) {
+        return [
+            'duplicates' => $this->findDuplicates($pages),
+            'broken' => $this->findBrokenLinks($pages),
+            'thin' => $this->findThinContent($pages),
+            'missing_descriptions' => $this->findMissingMetaDescriptions($pages),
+            'missing_titles' => $this->findMissingTitles($pages),
+            'slow' => $this->findSlowPages($pages),
+            'large' => $this->findLargePages($pages),
+            'noindex' => $this->findNoindexPages($pages),
+        ];
+    }
+
+    /**
+     * Calculate overall quality score (0-100)
+     */
+    private function scoreFindings(int $total, array $findings): int
+    {
+        if ($total === 0) {
             return 0;
         }
 
-        $total = count($pages);
-        $issues = 0;
-
-        $issues += count($this->findDuplicates($pages)) * 2;
-        $issues += count($this->findBrokenLinks($pages)) * 3;
-        $issues += count($this->findThinContent($pages));
-        $issues += count($this->findMissingMetaDescriptions($pages)) * 0.5;
-        $issues += count($this->findMissingTitles($pages)) * 2;
-        $issues += count($this->findSlowPages($pages)) * 0.5;
-        $issues += count($this->findNoindexPages($pages));
+        $issues = count($findings['duplicates']) * 2
+            + count($findings['broken']) * 3
+            + count($findings['thin'])
+            + count($findings['missing_descriptions']) * 0.5
+            + count($findings['missing_titles']) * 2
+            + count($findings['slow']) * 0.5
+            + count($findings['noindex']);
 
         $score = 100 - (($issues / $total) * 50);
 

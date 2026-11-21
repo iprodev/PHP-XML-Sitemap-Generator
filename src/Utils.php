@@ -124,6 +124,18 @@ class Utils
     }
 
     /**
+     * Count words in any script (Latin, Persian/Arabic, Cyrillic, ...).
+     *
+     * str_word_count() only understands Latin letters and returns 0 for e.g.
+     * Persian text. Zero-width (non-)joiners count as part of a word.
+     */
+    public static function countWords(string $text): int
+    {
+        $count = preg_match_all("/[\\p{L}\\p{N}][\\p{L}\\p{M}\\p{N}\\x{200C}\\x{200D}\\x{2019}'_-]*/u", $text);
+        return $count === false ? 0 : $count;
+    }
+
+    /**
      * Remove credentials from a URL (user:password@ part).
      * Strings that are not URLs are returned unchanged.
      */

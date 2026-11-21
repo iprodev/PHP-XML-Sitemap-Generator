@@ -112,7 +112,7 @@ php bin/sitemap \
   --url=https://www.example.com \
   --out=./sitemaps \
   --concurrency=20 \
-  --cache-enabled \
+  --rate-limit=600 \
   --db-enabled \
   --seo-analysis \
   --image-sitemap \
@@ -137,85 +137,84 @@ php bin/sitemap \
 --help, -h               # Show help
 ```
 
-### Caching
+### Crawling
 
 ```bash
---cache-enabled          # Enable caching
---cache-driver=file      # Cache driver: file|redis
---cache-ttl=3600         # Cache TTL in seconds
+--rate-limit=<N>           # Maximum requests per minute
+--delay=<MS>               # Wait between requests (requests are sent one at a time)
+--resume                   # Continue an interrupted crawl (Ctrl+C saves progress)
+--checkpoint-interval=<N>  # Save progress every N requests (default: 1000, 0 = off)
+--checkpoint-file=<PATH>   # Checkpoint file (default: ./checkpoint.json)
+--max-response-size=<MB>   # Skip larger responses (default: 10, 0 = no limit)
+--block-private-ips        # Refuse requests/redirects to private or internal addresses
 ```
+
+Only indexable pages end up in the sitemap: redirects are followed and the final
+URL is listed, `noindex` pages (meta robots or `X-Robots-Tag`) are left out, a page
+whose canonical URL points elsewhere is replaced by its canonical URL, and
+`rel="nofollow"` links are not followed.
 
 ### Database & Change Detection
 
 ```bash
 --db-enabled             # Enable database storage
---db-dsn=<DSN>           # Database DSN
+--db-dsn=<DSN>           # PDO DSN: sqlite:..., mysql:host=...;dbname=..., pgsql:host=...;dbname=...
+--db-user=<USER>         # Database user (or $DB_USERNAME); the password is read from $DB_PASSWORD
 --detect-changes         # Compare with previous crawl
---only-changed           # Only include changed URLs
-```
-
-### Resume Support
-
-```bash
---resume                 # Resume from checkpoint
---checkpoint-interval=<N> # Save checkpoint every N pages
-```
-
-### Rate Limiting
-
-```bash
---rate-limit=<N>         # Requests per minute
---delay=<MS>             # Delay between requests (ms)
+--only-changed           # Only write new and modified URLs (needs --db-enabled)
 ```
 
 ### Filtering
 
 ```bash
---exclude=<PATTERNS>     # Exclude patterns (comma-separated)
---include=<PATTERNS>     # Include only patterns
---priority-rules=<JSON>  # Priority rules as JSON
+--exclude=<PATTERNS>     # Never crawl or list matching URLs (comma-separated, * and ?)
+--include=<PATTERNS>     # Only list matching URLs (other pages are still crawled to find links)
+--priority-rules=<JSON>  # Priority rules as JSON, e.g. '{"/blog/*":0.8}'
 ```
 
-### SEO & Analysis
+### Reports
+
+Reports are written as JSON files to `--report-dir` (default `./reports`):
 
 ```bash
---seo-analysis           # Enable SEO analysis
---check-quality          # Check content quality
---find-duplicates        # Find duplicate content
---find-broken-links      # Find broken links
+--seo-analysis           # seo-report.json: score, issues and warnings per page
+--check-quality          # quality-report.json: thin content, missing titles, slow pages, ...
+--find-duplicates        # duplicates.json: pages with identical content
+--find-broken-links      # broken-links.json: failing URLs and the page that links to them
 ```
 
 ### Advanced Sitemaps
 
-```bash
---image-sitemap          # Generate image sitemap
---video-sitemap          # Generate video sitemap
---news-sitemap           # Generate news sitemap
-```
-
-### JavaScript Rendering
+All additional sitemaps are listed in `sitemap-index.xml`.
 
 ```bash
---enable-javascript      # Enable JS rendering
---chrome-path=<PATH>     # Path to Chrome/Chromium
---wait-for-ajax=<MS>     # Wait time for AJAX
+--image-sitemap            # Generate image sitemap
+--video-sitemap            # Generate video sitemap (YouTube/Vimeo embeds, <video>)
+--news-sitemap             # Generate news sitemap (articles from the last 2 days)
+--news-publication=<NAME>  # Publication name (default: og:site_name or host)
 ```
 
 ### Proxy Support
 
 ```bash
---proxy=<URL>            # Proxy URL
+--proxy=<URL>            # Proxy URL, e.g. http://user:pass@proxy:8080
 --proxy-file=<PATH>      # Load proxies from file
---rotate-proxies         # Rotate through proxies
+--rotate-proxies         # Use the next proxy for every request
 ```
 
 ### Webhooks
 
 ```bash
---webhook-url=<URL>      # Webhook for notifications
+--webhook-url=<URL>      # Webhook for notifications (passwords and tokens in the config are redacted)
 --notify-on-complete     # Notify when complete
 --notify-on-error        # Notify on errors
 ```
+
+### Not functional yet
+
+`--enable-javascript`, `--chrome-path` and `--wait-for-ajax` (JavaScript rendering) and
+`--cache-enabled`, `--cache-driver` and `--cache-ttl` are accepted but have no effect;
+the tool prints a warning when they are used.
 
 ---
 
@@ -271,6 +270,9 @@ Reports include:
 
 ### 4. JavaScript Rendering
 
+> **Not functional yet.** The options below are accepted but pages are fetched without
+> running JavaScript.
+
 For SPAs (React, Vue, Angular):
 
 ```bash
@@ -297,8 +299,16 @@ $scheduler->addSchedule('daily-crawl', [
 ]);
 
 // Add to crontab:
-// * * * * * php bin/scheduler
+// * * * * * cd /path/to/project && php bin/scheduler ./schedules.json
 ```
+
+`schedule` accepts any 5-field cron expression (`*/15 * * * *`, `30 2 * * 1-5`,
+`0 0 1 jan,jul *`, ...) or `hourly`, `daily`, `weekly` (Monday), `monthly`, `yearly`.
+Config keys may be written like the CLI options (`max-pages`), in snake_case
+(`max_pages`) or camelCase (`maxPages`); unknown keys are ignored.
+
+Only one scheduler process runs at a time, and a schedule's next run is set before
+its crawl starts, so a crawl that is slow or fails is not started again every minute.
 
 ### 6. Webhooks
 
@@ -595,10 +605,11 @@ docker build -t sitemap-generator-pro .
 
 # Run
 docker run --rm \
-  -v $(pwd)/sitemaps:/app/output \
+  -v "$(pwd):/data" \
+  --user "$(id -u):$(id -g)" \
   sitemap-generator-pro \
   --url=https://example.com \
-  --out=/app/output
+  --out=./sitemaps
 ```
 
 ---

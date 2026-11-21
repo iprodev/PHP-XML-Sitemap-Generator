@@ -134,8 +134,9 @@ class RateLimiter
     {
         $stats = [];
 
-        foreach ($this->requests as $domain => $requests) {
+        foreach (array_keys($this->requests) as $domain) {
             $this->cleanOldRequests($domain);
+            $requests = $this->requests[$domain];
             $stats[$domain] = [
                 'current_requests' => count($requests),
                 'max_requests' => $this->maxRequests,
@@ -148,9 +149,17 @@ class RateLimiter
     }
 
     /**
+     * Fixed delay between requests in milliseconds
+     */
+    public function getDelayMs(): int
+    {
+        return $this->delayMs;
+    }
+
+    /**
      * Reset all counters
      */
-    public function reset(string $domain = null): void
+    public function reset(?string $domain = null): void
     {
         if ($domain) {
             unset($this->requests[$domain]);
