@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Scheduler:** a slow or failing crawl is no longer started again every minute; only one scheduler process runs at a time; `*/5 * * * *` and other expressions no longer fall back to once a day.
 - **Interactive mode** no longer crashes with a `TypeError`.
 - **Docker:** the image build installed pecl redis without build tools and many unused extensions; it is now multi-stage, smaller and pinned.
+- **CI:** the Docker image is only pushed when both `DOCKER_USERNAME` and `DOCKER_PASSWORD` are set; otherwise it is only built.
 - **Sitemap XML:** URLs and texts were escaped twice (`&` became `&amp;amp;`) in the URL, image, video and news sitemaps.
 - **Sitemap index:** `<loc>` entries are always absolute; without `--public-base` the origin of the crawled site is used. `<lastmod>` now carries the real UTC offset instead of a hard-coded `+00:00`.
 - **robots.txt** follows RFC 9309: consecutive `User-agent` lines share one group, the most specific (longest) rule wins with `Allow` winning ties, and only the groups for this crawler (`php-sitemap-generator`) or, failing that, `*` apply. Added `RobotsTxt::fromString()`.
