@@ -63,7 +63,8 @@ class Fetcher
 
         $defaults = [
             'headers' => [
-                'User-Agent' => 'php-sitemap-generator/1.0 (+https://github.com/iprodev)',
+                'User-Agent' => 'php-sitemap-generator/' . Version::NUMBER
+                    . ' (+https://github.com/iprodev/PHP-XML-Sitemap-Generator)',
                 'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                 'Accept-Language' => 'en-US,en;q=0.5',
                 'Accept-Encoding' => 'gzip, deflate',

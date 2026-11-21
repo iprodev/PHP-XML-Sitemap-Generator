@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.1.0] - 2026-11-21
 
 ### ⚠️ Behaviour changes
 
@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MySQL/MariaDB and PostgreSQL support for database storage; CI tests it against MySQL 8 and PostgreSQL 16.
 - Real cron expressions in the scheduler (lists, ranges, steps, names).
 - `Crawler` hooks: URL filter, rate limiter, checkpoints, page processors, `getErrors()`. New `UrlNormalizer`, `Parser::parseDocument()`, `Utils::countWords()`.
+- `bin/sitemap --version` and `IProDev\Sitemap\Version::NUMBER`; the crawler's User-Agent carries the version.
 
 ### 🔒 Security
 
@@ -42,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Scheduler:** a slow or failing crawl is no longer started again every minute; only one scheduler process runs at a time; `*/5 * * * *` and other expressions no longer fall back to once a day.
 - **Interactive mode** no longer crashes with a `TypeError`.
 - **Docker:** the image build installed pecl redis without build tools and many unused extensions; it is now multi-stage, smaller and pinned.
+- **CI:** the Docker image is only pushed when both `DOCKER_USERNAME` and `DOCKER_PASSWORD` are set; otherwise it is only built.
 - **Sitemap XML:** URLs and texts were escaped twice (`&` became `&amp;amp;`) in the URL, image, video and news sitemaps.
 - **Sitemap index:** `<loc>` entries are always absolute; without `--public-base` the origin of the crawled site is used. `<lastmod>` now carries the real UTC offset instead of a hard-coded `+00:00`.
 - **robots.txt** follows RFC 9309: consecutive `User-agent` lines share one group, the most specific (longest) rule wins with `Allow` winning ties, and only the groups for this crawler (`php-sitemap-generator`) or, failing that, `*` apply. Added `RobotsTxt::fromString()`.

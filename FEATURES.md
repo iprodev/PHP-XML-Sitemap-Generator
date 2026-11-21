@@ -2,9 +2,13 @@
 
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.0-8892BF.svg)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](CHANGELOG.md)
 
-This document provides comprehensive documentation for all features available in PHP XML Sitemap Generator v3.0.
+This document provides comprehensive documentation for all features available in PHP XML Sitemap Generator v3.1.
+
+> **Note:** JavaScript rendering (`HeadlessBrowser`, `JavaScriptFetcher`, `--enable-javascript`) is not functional yet,
+> and the CLI `--cache-*` options have no effect. The cache classes can still be used from PHP code.
+> See the [README](README.md) for the current CLI options.
 
 ## 📋 Overview
 
