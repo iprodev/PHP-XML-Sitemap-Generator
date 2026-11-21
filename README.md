@@ -299,8 +299,16 @@ $scheduler->addSchedule('daily-crawl', [
 ]);
 
 // Add to crontab:
-// * * * * * php bin/scheduler
+// * * * * * cd /path/to/project && php bin/scheduler ./schedules.json
 ```
+
+`schedule` accepts any 5-field cron expression (`*/15 * * * *`, `30 2 * * 1-5`,
+`0 0 1 jan,jul *`, ...) or `hourly`, `daily`, `weekly` (Monday), `monthly`, `yearly`.
+Config keys may be written like the CLI options (`max-pages`), in snake_case
+(`max_pages`) or camelCase (`maxPages`); unknown keys are ignored.
+
+Only one scheduler process runs at a time, and a schedule's next run is set before
+its crawl starts, so a crawl that is slow or fails is not started again every minute.
 
 ### 6. Webhooks
 

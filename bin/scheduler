@@ -1,13 +1,28 @@
 #!/usr/bin/env php
 <?php
 
+// Usage: bin/scheduler [path/to/schedules.json]   (run it from cron every minute)
+
 require __DIR__ . '/../vendor/autoload.php';
 
 use IProDev\Sitemap\Scheduler\CronScheduler;
 use IProDev\Sitemap\Utils;
 
-$scheduler = new CronScheduler('./schedules.json');
+$scheduleFile = $argv[1] ?? './schedules.json';
 $phpBinary = PHP_BINARY !== '' ? PHP_BINARY : 'php';
+
+try {
+    $scheduler = new CronScheduler($scheduleFile);
+} catch (\Throwable $e) {
+    fwrite(STDERR, "❌ {$e->getMessage()}\n");
+    exit(1);
+}
+
+// Only one scheduler at a time: cron starts us every minute, but crawls can take longer
+if (!$scheduler->lock()) {
+    echo "Another scheduler run is still in progress; skipping.\n";
+    exit(0);
+}
 
 // Get schedules that should run now
 $dueSchedules = $scheduler->getDueSchedules();
@@ -20,15 +35,24 @@ if (empty($dueSchedules)) {
 echo "Found " . count($dueSchedules) . " schedule(s) to run:\n";
 
 foreach ($dueSchedules as $schedule) {
-    $name = $schedule['name'];
-    $config = $schedule['config'];
-    
+    $name = (string)$schedule['name'];
+    $config = $schedule['config'] ?? null;
+
     echo "\nRunning: {$name}\n";
     echo str_repeat('-', 50) . "\n";
-    
+
     try {
         if (!is_array($config)) {
             throw new \RuntimeException('Schedule config must be an object');
+        }
+
+        // Move next_run forward *before* running, so a slow or failing crawl is not
+        // started again on the next scheduler run
+        try {
+            $scheduler->markAsRun($name);
+        } catch (\InvalidArgumentException $e) {
+            $scheduler->toggleSchedule($name, false);
+            throw new \RuntimeException($e->getMessage() . '; schedule disabled', 0, $e);
         }
 
         // Build the command as an argument array: proc_open() then runs it
@@ -57,19 +81,19 @@ foreach ($dueSchedules as $schedule) {
         }
         fclose($pipes[0]);
         $returnCode = proc_close($process);
+        $scheduler->recordResult($name, $returnCode);
 
         if ($returnCode === 0) {
             echo "\n✅ Schedule '{$name}' completed successfully\n";
-            $scheduler->markAsRun($name);
         } else {
             echo "\n❌ Schedule '{$name}' failed with code {$returnCode}\n";
         }
-        
     } catch (\Throwable $e) {
         echo "❌ Error running schedule '{$name}': {$e->getMessage()}\n";
     }
-    
+
     echo str_repeat('-', 50) . "\n";
 }
 
+$scheduler->unlock();
 echo "\nScheduler completed.\n";

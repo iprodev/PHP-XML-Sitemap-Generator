@@ -31,8 +31,30 @@ class CronScheduler
         'enable-java-script' => 'enable-javascript',
     ];
 
+    /**
+     * Named schedules. "weekly" keeps this tool's historic meaning (Monday 00:00);
+     * "@weekly" is the standard cron alias (Sunday 00:00).
+     */
+    private const EXPRESSION_ALIASES = [
+        'hourly' => '0 * * * *', '@hourly' => '0 * * * *',
+        'daily' => '0 0 * * *', '@daily' => '0 0 * * *', '@midnight' => '0 0 * * *',
+        'weekly' => '0 0 * * 1', '@weekly' => '0 0 * * 0',
+        'monthly' => '0 0 1 * *', '@monthly' => '0 0 1 * *',
+        'yearly' => '0 0 1 1 *', '@yearly' => '0 0 1 1 *', '@annually' => '0 0 1 1 *',
+    ];
+
+    private const MONTH_NAMES = [
+        'jan' => 1, 'feb' => 2, 'mar' => 3, 'apr' => 4, 'may' => 5, 'jun' => 6,
+        'jul' => 7, 'aug' => 8, 'sep' => 9, 'oct' => 10, 'nov' => 11, 'dec' => 12,
+    ];
+
+    private const DAY_NAMES = ['sun' => 0, 'mon' => 1, 'tue' => 2, 'wed' => 3, 'thu' => 4, 'fri' => 5, 'sat' => 6];
+
     private string $scheduleFile;
     private array $schedules = [];
+
+    /** @var resource|null */
+    private $lockHandle = null;
 
     public function __construct(string $scheduleFile = './schedules.json')
     {
@@ -40,17 +62,27 @@ class CronScheduler
         $this->loadSchedules();
     }
 
+    public function __destruct()
+    {
+        $this->unlock();
+    }
+
     /**
-     * Add a scheduled crawl
+     * Add a scheduled crawl. $config['schedule'] is a 5-field cron expression or
+     * one of hourly, daily, weekly, monthly, yearly (or @hourly, @daily, ...).
+     *
+     * @throws \InvalidArgumentException for an invalid schedule expression
      */
     public function addSchedule(string $name, array $config): void
     {
+        $expression = $config['schedule'] ?? 'daily';
+
         $this->schedules[$name] = [
             'name' => $name,
             'config' => $config,
-            'cron_expression' => $config['schedule'] ?? 'daily',
+            'cron_expression' => $expression,
             'last_run' => null,
-            'next_run' => $this->calculateNextRun($config['schedule'] ?? 'daily'),
+            'next_run' => $this->calculateNextRun($expression),
             'enabled' => true,
             'created_at' => date('Y-m-d H:i:s')
         ];
@@ -90,13 +122,13 @@ class CronScheduler
         $due = [];
         $now = time();
 
-        foreach ($this->schedules as $name => $schedule) {
-            if (!$schedule['enabled']) {
+        foreach ($this->schedules as $schedule) {
+            if (empty($schedule['enabled']) || empty($schedule['next_run'])) {
                 continue;
             }
 
             $nextRun = strtotime($schedule['next_run']);
-            if ($nextRun <= $now) {
+            if ($nextRun !== false && $nextRun <= $now) {
                 $due[] = $schedule;
             }
         }
@@ -105,15 +137,32 @@ class CronScheduler
     }
 
     /**
-     * Mark schedule as run
+     * Mark a schedule as started and move next_run to the next matching time.
+     *
+     * Call this *before* running the crawl: otherwise a crawl that takes longer than
+     * the cron interval, or that fails, would be started again on every scheduler run.
+     *
+     * @throws \InvalidArgumentException when the schedule's expression is invalid
      */
     public function markAsRun(string $name): void
     {
         if (isset($this->schedules[$name])) {
             $this->schedules[$name]['last_run'] = date('Y-m-d H:i:s');
             $this->schedules[$name]['next_run'] = $this->calculateNextRun(
-                $this->schedules[$name]['cron_expression']
+                (string)($this->schedules[$name]['cron_expression'] ?? 'daily')
             );
+            $this->saveSchedules();
+        }
+    }
+
+    /**
+     * Record how a run ended
+     */
+    public function recordResult(string $name, int $exitCode): void
+    {
+        if (isset($this->schedules[$name])) {
+            $this->schedules[$name]['last_exit_code'] = $exitCode;
+            $this->schedules[$name]['last_finished'] = date('Y-m-d H:i:s');
             $this->saveSchedules();
         }
     }
@@ -127,77 +176,188 @@ class CronScheduler
     }
 
     /**
+     * Take an exclusive, non-blocking lock so only one scheduler process runs at a time
+     *
+     * @return bool false if another process holds the lock
+     */
+    public function lock(): bool
+    {
+        if ($this->lockHandle !== null) {
+            return true;
+        }
+
+        $this->ensureDirectory();
+        $handle = fopen($this->scheduleFile . '.lock', 'c');
+        if ($handle === false) {
+            throw new \RuntimeException("Cannot open lock file {$this->scheduleFile}.lock");
+        }
+
+        if (!flock($handle, LOCK_EX | LOCK_NB)) {
+            fclose($handle);
+            return false;
+        }
+
+        $this->lockHandle = $handle;
+        return true;
+    }
+
+    public function unlock(): void
+    {
+        if ($this->lockHandle !== null) {
+            flock($this->lockHandle, LOCK_UN);
+            fclose($this->lockHandle);
+            $this->lockHandle = null;
+        }
+    }
+
+    /**
      * Calculate next run time
      */
     private function calculateNextRun(string $expression): string
     {
-        $now = time();
-
-        switch ($expression) {
-            case 'hourly':
-                $next = strtotime('+1 hour', $now);
-                break;
-
-            case 'daily':
-                $next = strtotime('tomorrow 00:00', $now);
-                break;
-
-            case 'weekly':
-                $next = strtotime('next monday 00:00', $now);
-                break;
-
-            case 'monthly':
-                $next = strtotime('first day of next month 00:00', $now);
-                break;
-
-            default:
-                // Try to parse as cron expression (simplified)
-                $next = $this->parseCronExpression($expression);
-                if (!$next) {
-                    $next = strtotime('+1 day', $now);
-                }
-        }
-
-        return date('Y-m-d H:i:s', $next);
+        return self::nextRunTime($expression, new \DateTimeImmutable())->format('Y-m-d H:i:s');
     }
 
     /**
-     * Parse cron expression (simplified)
-     * Format: minute hour day month weekday
-     * Example: "0 2 * * *" = Every day at 2:00 AM
+     * First minute after $after that matches a cron expression.
+     *
+     * Supports the standard 5 fields (minute hour day-of-month month day-of-week)
+     * with "*", lists, ranges, steps and month/day names, plus the named schedules.
+     * As in cron, when both day-of-month and day-of-week are restricted, a day
+     * matching either of them matches.
+     *
+     * @throws \InvalidArgumentException for an invalid or impossible expression
      */
-    private function parseCronExpression(string $expression): ?int
+    public static function nextRunTime(string $expression, \DateTimeInterface $after): \DateTimeImmutable
     {
-        $parts = explode(' ', $expression);
-        if (count($parts) !== 5) {
-            return null;
+        $fields = self::parseExpression($expression);
+
+        $time = \DateTimeImmutable::createFromInterface($after);
+        $time = $time->setTime((int)$time->format('G'), (int)$time->format('i'))->modify('+1 minute');
+        $limit = $after->getTimestamp() + 5 * 366 * 86400;
+
+        while ($time->getTimestamp() <= $limit) {
+            if (!isset($fields['month'][(int)$time->format('n')])) {
+                $time = $time->modify('first day of next month')->setTime(0, 0);
+                continue;
+            }
+            if (!self::dayMatches($fields, $time)) {
+                $time = $time->modify('+1 day')->setTime(0, 0);
+                continue;
+            }
+            if (!isset($fields['hour'][(int)$time->format('G')])) {
+                $time = $time->modify('+1 hour');
+                $time = $time->setTime((int)$time->format('G'), 0);
+                continue;
+            }
+            if (!isset($fields['minute'][(int)$time->format('i')])) {
+                $time = $time->modify('+1 minute');
+                continue;
+            }
+
+            return $time;
         }
 
-        list($minute, $hour, $day, $month, $weekday) = $parts;
+        throw new \InvalidArgumentException("Cron expression '{$expression}' never matches");
+    }
 
-        $now = time();
-        $currentHour = (int)date('H', $now);
-        $currentMinute = (int)date('i', $now);
+    private static function dayMatches(array $fields, \DateTimeImmutable $time): bool
+    {
+        $domMatches = isset($fields['dom'][(int)$time->format('j')]);
+        $dowMatches = isset($fields['dow'][(int)$time->format('w')]);
 
-        // Simple case: specific time each day (e.g., "0 2 * * *")
-        if ($day === '*' && $month === '*' && $weekday === '*') {
-            $targetHour = (int)$hour;
-            $targetMinute = (int)$minute;
+        if ($fields['dom_restricted'] && $fields['dow_restricted']) {
+            return $domMatches || $dowMatches;
+        }
 
-            if (
-                $targetHour > $currentHour ||
-                ($targetHour === $currentHour && $targetMinute > $currentMinute)
-            ) {
-                // Today
-                return strtotime(sprintf('%02d:%02d:00', $targetHour, $targetMinute));
+        return $domMatches && $dowMatches;
+    }
+
+    /**
+     * @return array{minute: array, hour: array, dom: array, month: array, dow: array,
+     *               dom_restricted: bool, dow_restricted: bool}
+     */
+    private static function parseExpression(string $expression): array
+    {
+        $normalized = strtolower(trim($expression));
+        $normalized = self::EXPRESSION_ALIASES[$normalized] ?? $normalized;
+
+        $parts = preg_split('/\s+/', $normalized) ?: [];
+        if (count($parts) !== 5) {
+            throw new \InvalidArgumentException(
+                "Invalid cron expression '{$expression}': expected 5 fields (minute hour day month weekday)"
+            );
+        }
+
+        [$minute, $hour, $dom, $month, $dow] = $parts;
+
+        $dowValues = self::parseField($dow, 0, 7, self::DAY_NAMES, $expression);
+        if (isset($dowValues[7])) {
+            $dowValues[0] = true; // 7 is Sunday too
+        }
+
+        return [
+            'minute' => self::parseField($minute, 0, 59, [], $expression),
+            'hour' => self::parseField($hour, 0, 23, [], $expression),
+            'dom' => self::parseField($dom, 1, 31, [], $expression),
+            'month' => self::parseField($month, 1, 12, self::MONTH_NAMES, $expression),
+            'dow' => $dowValues,
+            'dom_restricted' => !str_starts_with($dom, '*'),
+            'dow_restricted' => !str_starts_with($dow, '*'),
+        ];
+    }
+
+    /**
+     * @param array<string, int> $names
+     * @return array<int, true>
+     */
+    private static function parseField(string $field, int $min, int $max, array $names, string $expression): array
+    {
+        $values = [];
+
+        foreach (explode(',', $field) as $part) {
+            if (!preg_match('/^(\*|[a-z0-9]+(?:-[a-z0-9]+)?)(?:\/(\d+))?$/', $part, $m)) {
+                throw new \InvalidArgumentException("Invalid cron expression '{$expression}': bad field '{$field}'");
+            }
+
+            $step = isset($m[2]) && $m[2] !== '' ? (int)$m[2] : 1;
+            if ($m[1] === '*') {
+                [$start, $end] = [$min, $max];
             } else {
-                // Tomorrow
-                return strtotime(sprintf('tomorrow %02d:%02d:00', $targetHour, $targetMinute));
+                $range = explode('-', $m[1]);
+                $start = self::fieldValue($range[0], $names, $expression);
+                $end = isset($range[1])
+                    ? self::fieldValue($range[1], $names, $expression)
+                    : ($step > 1 ? $max : $start);
+            }
+
+            if ($step < 1 || $start < $min || $end > $max || $start > $end) {
+                throw new \InvalidArgumentException(
+                    "Invalid cron expression '{$expression}': '{$part}' is outside {$min}-{$max}"
+                );
+            }
+
+            for ($value = $start; $value <= $end; $value += $step) {
+                $values[$value] = true;
             }
         }
 
-        // For more complex expressions, use next day as fallback
-        return strtotime('+1 day', $now);
+        return $values;
+    }
+
+    /**
+     * @param array<string, int> $names
+     */
+    private static function fieldValue(string $value, array $names, string $expression): int
+    {
+        if (ctype_digit($value)) {
+            return (int)$value;
+        }
+        if (isset($names[$value])) {
+            return $names[$value];
+        }
+
+        throw new \InvalidArgumentException("Invalid cron expression '{$expression}': unknown value '{$value}'");
     }
 
     /**
@@ -205,26 +365,52 @@ class CronScheduler
      */
     private function loadSchedules(): void
     {
-        if (file_exists($this->scheduleFile)) {
-            $content = file_get_contents($this->scheduleFile);
-            $this->schedules = json_decode($content, true) ?? [];
+        if (!file_exists($this->scheduleFile)) {
+            return;
         }
+
+        $content = file_get_contents($this->scheduleFile);
+        if ($content === false) {
+            throw new \RuntimeException("Cannot read schedule file {$this->scheduleFile}");
+        }
+        if (trim($content) === '') {
+            return;
+        }
+
+        $schedules = json_decode($content, true);
+        if (!is_array($schedules)) {
+            // Refuse to continue: saving would overwrite the user's file
+            throw new \RuntimeException("Schedule file {$this->scheduleFile} is not valid JSON");
+        }
+
+        $this->schedules = $schedules;
     }
 
     /**
-     * Save schedules to file
+     * Save schedules to file (atomically, via a temporary file)
      */
     private function saveSchedules(): void
     {
-        $dir = dirname($this->scheduleFile);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
+        $this->ensureDirectory();
+
+        $json = json_encode($this->schedules, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        if ($json === false) {
+            throw new \RuntimeException('Failed to encode schedules: ' . json_last_error_msg());
         }
 
-        file_put_contents(
-            $this->scheduleFile,
-            json_encode($this->schedules, JSON_PRETTY_PRINT)
-        );
+        $tmp = $this->scheduleFile . '.tmp';
+        if (file_put_contents($tmp, $json, LOCK_EX) === false || !rename($tmp, $this->scheduleFile)) {
+            @unlink($tmp);
+            throw new \RuntimeException("Failed to write schedule file {$this->scheduleFile}");
+        }
+    }
+
+    private function ensureDirectory(): void
+    {
+        $dir = dirname($this->scheduleFile);
+        if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+            throw new \RuntimeException("Cannot create directory {$dir}");
+        }
     }
 
     /**
